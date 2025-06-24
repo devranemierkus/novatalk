@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <title>NovaTalk - Sesli & Görüntülü Konuşma</title>
+  <title>NovaTalk - Sesli & Görüntülü Konuşma & İzin İste</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
@@ -25,9 +25,21 @@
       cursor: pointer;
       user-select: none;
       transition: background-color 0.3s ease;
-      min-width: 160px;
+      min-width: 180px;
       color: white;
       box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+    #btnMicPermission {
+      background: #007bff;
+    }
+    #btnMicPermission:hover {
+      background: #0056b3;
+    }
+    #btnCamPermission {
+      background: #17a2b8;
+    }
+    #btnCamPermission:hover {
+      background: #0f6674;
     }
     #btnVoice {
       background: #2196f3;
@@ -75,6 +87,7 @@
       color: #eee;
       border: 2px solid #4caf50;
       box-shadow: inset 0 0 10px #333;
+      text-align: left;
     }
   </style>
 </head>
@@ -82,16 +95,25 @@
 
   <h1>NovaTalk 🤖</h1>
 
-  <button id="btnVoice">🎤 Sesli Konuşmayı Başlat</button>
-  <button id="btnVideoStart">📹 Görüntülü Konuşmayı Başlat</button>
+  <!-- İzin Butonları -->
+  <button id="btnMicPermission">🎤 Mikrofon İzni Ver</button>
+  <button id="btnCamPermission">📷 Kamera İzni Ver</button>
+  
+  <br/>
+
+  <!-- Konuşma Butonları -->
+  <button id="btnVoice" disabled>🎤 Sesli Konuşmayı Başlat</button>
+  <button id="btnVideoStart" disabled>📹 Görüntülü Konuşmayı Başlat</button>
   <button id="btnVideoStop" disabled>⏹️ Görüntülü Konuşmayı Durdur</button>
 
   <video id="video" autoplay playsinline></video>
 
-  <div id="status">Durum: Bekleniyor...</div>
+  <div id="status">Durum: İzinler bekleniyor...</div>
   <div id="log">📝 Konuşma logu buraya gelecek...</div>
 
   <script>
+    const btnMicPermission = document.getElementById('btnMicPermission');
+    const btnCamPermission = document.getElementById('btnCamPermission');
     const btnVoice = document.getElementById('btnVoice');
     const btnVideoStart = document.getElementById('btnVideoStart');
     const btnVideoStop = document.getElementById('btnVideoStop');
@@ -99,14 +121,16 @@
     const status = document.getElementById('status');
     const log = document.getElementById('log');
 
+    let micPermissionGranted = false;
+    let camPermissionGranted = false;
+
     let recognition = null;
     let audioStream = null;
     let videoStream = null;
     let listening = false;
 
-    // Idle (boşta) uyarı timer
     let idleTimer = null;
-    const idleTimeout = 5000; // 5 saniye
+    const idleTimeout = 5000; // 5 saniye boşta kalınca uyarı
 
     function resetIdleTimer() {
       if (idleTimer) clearTimeout(idleTimer);
@@ -114,23 +138,72 @@
         botKonus('Konuş, bekliyorum dostum 😊');
         log.textContent += '\n🤖 Bot: Konuş, bekliyorum dostum 😊';
         log.scrollTop = log.scrollHeight;
-        resetIdleTimer(); // tekrar başlat
+        resetIdleTimer();
       }, idleTimeout);
     }
 
-    // Text-to-Speech bot fonksiyonu
     function botKonus(text) {
-      if (speechSynthesis.speaking) {
-        speechSynthesis.cancel();
+      try {
+        if (speechSynthesis.speaking) {
+          speechSynthesis.cancel();
+        }
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'tr-TR';
+        utterance.pitch = 1.1;
+        utterance.rate = 1;
+        utterance.onerror = (event) => {
+          status.textContent = 'DURUM: Bot konuşurken hata oluştu. Lütfen konsolu kontrol edin.';
+          console.error('SpeechSynthesisUtterance error:', event.error);
+        };
+        speechSynthesis.speak(utterance);
+      } catch (e) {
+        status.textContent = 'DURUM: Bot konuşma fonksiyonunda hata oluştu.';
+        console.error('botKonus error:', e);
       }
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'tr-TR';
-      utterance.pitch = 1.1;
-      utterance.rate = 1;
-      speechSynthesis.speak(utterance);
     }
 
-    // Sesli konuşmayı başlat / sürekli dinle
+    // İzinleri kontrol ve buton aktif et
+    function checkEnableButtons() {
+      btnVoice.disabled = !micPermissionGranted;
+      btnVideoStart.disabled = !(micPermissionGranted && camPermissionGranted);
+    }
+
+    // Mikrofon izni isteme
+    btnMicPermission.onclick = () => {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+          micPermissionGranted = true;
+          audioStream = stream;
+          status.textContent = '✅ Mikrofon izni verildi.';
+          btnMicPermission.disabled = true;
+          btnMicPermission.textContent = '🎤 Mikrofon İzni Verildi';
+          checkEnableButtons();
+          // Mikrofon akışını kapatıyoruz, konuşma başlatınca açarız
+          stream.getTracks().forEach(track => track.stop());
+        })
+        .catch(err => {
+          status.textContent = '❌ Mikrofon izni reddedildi veya hata: ' + err.message;
+        });
+    };
+
+    // Kamera izni isteme
+    btnCamPermission.onclick = () => {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          camPermissionGranted = true;
+          status.textContent = '✅ Kamera izni verildi.';
+          btnCamPermission.disabled = true;
+          btnCamPermission.textContent = '📷 Kamera İzni Verildi';
+          checkEnableButtons();
+          // Kamerayı kapatıyoruz, görüntülü konuşma başlatınca açarız
+          stream.getTracks().forEach(track => track.stop());
+        })
+        .catch(err => {
+          status.textContent = '❌ Kamera izni reddedildi veya hata: ' + err.message;
+        });
+    };
+
+    // Sesli konuşmayı başlat / durdur
     btnVoice.onclick = () => {
       if (listening) {
         stopRecognition();
@@ -149,7 +222,7 @@
           recognition.continuous = true;
 
           recognition.onresult = (event) => {
-            resetIdleTimer(); // Kullanıcı konuştu, timer sıfırla
+            resetIdleTimer();
             const speech = event.results[event.results.length -1][0].transcript.toLowerCase();
             log.textContent += `\n👤 Sen: ${speech}`;
             log.scrollTop = log.scrollHeight;
