@@ -3,13 +3,12 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>NovaTalk - Sesli & Görüntülü Arama + İzin Yönetimi + Bot Konuşma</title>
+<title>NovaTalk - Sesli & Görüntülü Arama + Basılı Tut Konuş</title>
 <style>
   body {
     margin:0; font-family: Arial, sans-serif; background:#e0f7fa;
     display:flex; flex-direction: column; align-items: center; justify-content: flex-start;
-    min-height: 100vh;
-    padding: 10px 10px 30px;
+    min-height: 100vh; padding: 10px 10px 30px;
   }
   header {
     width: 100%; background:#00796b; color:#fff; padding: 18px 0; font-size: 24px; text-align:center;
@@ -18,26 +17,20 @@
   #app {
     background: #fff; width: 380px; max-width: 95vw; border-radius: 15px;
     box-shadow: 0 6px 18px rgba(0,0,0,0.15);
-    margin-top: 20px;
-    padding: 20px;
-    box-sizing: border-box;
+    margin-top: 20px; padding: 20px; box-sizing: border-box;
   }
   #status {
     font-size: 18px; color: #004d40; min-height: 24px; margin-bottom: 15px;
-    user-select:none;
-    text-align:center;
+    user-select:none; text-align:center;
   }
   video {
     width: 100%; max-width: 320px; height: 240px; border-radius: 15px; background:#000;
-    object-fit: cover;
-    margin: 0 auto 15px auto;
-    display: none;
+    object-fit: cover; margin: 0 auto 15px auto; display: none;
   }
   #avatar {
     width: 120px; height: 120px; border-radius: 50%; background:#26a69a; position: relative;
     box-shadow: inset 0 0 8px #00796b;
-    margin: 0 auto 15px auto;
-    display: none;
+    margin: 0 auto 15px auto; display: none;
   }
   .eye {
     width: 22px; height: 22px; background:#fff; border-radius: 50%; position: absolute; top: 40px;
@@ -97,10 +90,6 @@
     font-size: 12px; color: #555; margin-top: 12px; text-align: center;
     user-select:none;
   }
-  #copyright {
-    font-size: 10px; color: #888; margin-top: 8px; text-align: center;
-    user-select:none;
-  }
   #permissionButton {
     display: none;
     background: #ffa000;
@@ -108,12 +97,13 @@
     font-weight: bold;
     margin: 15px auto;
     min-width: 180px;
+    border-radius: 30px;
   }
 </style>
 </head>
 <body>
 
-<header>NovaTalk - Sesli & Görüntülü Arama + İzin Yönetimi + Bot Konuşma</header>
+<header>NovaTalk - Sesli & Görüntülü Arama + Basılı Tut Konuş</header>
 
 <div id="app">
   <div id="status">Arama başlatmak için butona basın.</div>
@@ -136,7 +126,6 @@
   <div id="log">📝 Sohbet logları burada görünecek...</div>
 
   <div id="securityNote">🔒 Mikrofon ve kamera izinleri yalnızca siz başlattığınızda aktif olur. Verileriniz asla kaydedilmez veya paylaşılmaz.</div>
-  <div id="copyright">© 2025 NovaTalk | Tüm hakları saklıdır.</div>
 </div>
 
 <script>
@@ -159,7 +148,7 @@
 
   // Göz hareketi
   function moveEyes() {
-    if(isTalking) return; // Konuşurken gözler sabit
+    if(isTalking) return;
     const x = Math.random() * 6 - 3;
     const y = Math.random() * 4 - 2;
     pupilLeft.style.transform = `translate(${x}px, ${y}px)`;
@@ -178,7 +167,7 @@
     log.scrollTop = log.scrollHeight;
   }
 
-  // İzinleri kontrol et ve gerekli durumda izin butonunu göster
+  // İzinleri kontrol et ve gerekiyorsa izin butonunu göster
   async function checkPermissions() {
     try {
       const mic = await navigator.permissions.query({name: 'microphone'});
@@ -191,13 +180,12 @@
         return false;
       }
     } catch {
-      // Permissions API desteklenmezse, doğrudan izin iste
       permissionButton.style.display = 'inline-block';
       return false;
     }
   }
 
-  // İzinleri isteme (kullanıcı butona basınca)
+  // İzinleri isteme
   async function requestPermissions() {
     try {
       stream = await navigator.mediaDevices.getUserMedia({audio:true, video:true});
@@ -300,79 +288,88 @@
     const permsOk = await checkPermissions();
     if(!permsOk){
       status.textContent = "Lütfen önce izinleri verin.";
+      permissionButton.style.display = 'inline-block';
       return;
     }
+
     try {
       stream = await navigator.mediaDevices.getUserMedia({audio:true, video:true});
+      videoLocal.srcObject = stream;
+      videoLocal.style.display = 'block';
+      avatar.style.display = 'block';
+      isCalling = true;
+      btnStartCall.style.display = 'none';
+      btnEndCall.style.display = 'inline-block';
+      talkButton.style.display = 'inline-block';
+      status.textContent = "Arama başladı. Basılı tut konuş.";
+      logMessage("📞 Görüntülü arama başladı.");
     } catch(e) {
-      alert("Kamera ve mikrofon erişimi alınamadı.");
-      return;
+      alert("Mikrofon veya kamera açılamadı.");
+      logMessage("❌ Medya başlatılamadı.");
     }
-    isCalling = true;
-    videoLocal.srcObject = stream;
-    videoLocal.style.display = 'block';
-    avatar.style.display = 'block';
-    status.textContent = 'Görüntülü arama başladı.';
-    logMessage('📞 Arama başladı.');
-    btnStartCall.style.display = 'none';
-    btnEndCall.style.display = 'inline-block';
-    talkButton.style.display = 'inline-block';
   }
 
   // Aramayı bitir
   function endCall() {
     if(!isCalling) return;
-    isCalling = false;
-    isTalking = false;
-    talkButton.style.display = 'none';
-    videoLocal.style.display = 'none';
-    avatar.style.display = 'none';
-    status.textContent = 'Arama sonlandırıldı.';
-    logMessage('🔴 Arama sonlandırıldı.');
-    btnStartCall.style.display = 'inline-block';
-    btnEndCall.style.display = 'none';
-
     if(stream){
       stream.getTracks().forEach(track => track.stop());
       stream = null;
     }
-
-    stopRecognition();
-  }
-
-  // Basılı tut konuşma olayları
-  talkButton.addEventListener('mousedown', () => {
-    if(!isCalling) return;
-    isTalking = true;
-    startRecognition();
-  });
-
-  talkButton.addEventListener('mouseup', () => {
-    if(!isCalling) return;
+    videoLocal.style.display = 'none';
+    avatar.style.display = 'none';
+    isCalling = false;
     isTalking = false;
     stopRecognition();
-  });
+    btnStartCall.style.display = 'inline-block';
+    btnEndCall.style.display = 'none';
+    talkButton.style.display = 'none';
+    status.textContent = "Arama sonlandırıldı.";
+    logMessage("🔴 Arama sona erdi.");
+  }
 
-  // Mobil dokunma
+  // Basılı tut konuş - eventi
+  talkButton.addEventListener('mousedown', () => {
+    if(!isCalling) return;
+    if(isTalking) return;
+    isTalking = true;
+    talkButton.classList.add('active');
+    startRecognition();
+  });
   talkButton.addEventListener('touchstart', (e) => {
     e.preventDefault();
-    if(!isCalling) return;
-    isTalking = true;
-    startRecognition();
+    talkButton.dispatchEvent(new Event('mousedown'));
+  }, {passive:false});
+
+  talkButton.addEventListener('mouseup', () => {
+    if(!isTalking) return;
+    isTalking = false;
+    talkButton.classList.remove('active');
+    stopRecognition();
   });
   talkButton.addEventListener('touchend', (e) => {
     e.preventDefault();
-    if(!isCalling) return;
-    isTalking = false;
-    stopRecognition();
+    talkButton.dispatchEvent(new Event('mouseup'));
   });
 
-  btnStartCall.addEventListener('click', startCall);
-  btnEndCall.addEventListener('click', endCall);
-  permissionButton.addEventListener('click', requestPermissions);
+  // İzin butonu
+  permissionButton.addEventListener('click', () => {
+    requestPermissions();
+  });
 
-  // İlk yüklemede izin durumu kontrolü
+  // Arama başlat butonu
+  btnStartCall.addEventListener('click', () => {
+    startCall();
+  });
+
+  // Arama bitir butonu
+  btnEndCall.addEventListener('click', () => {
+    endCall();
+  });
+
+  // Başlangıçta izinleri kontrol et
   checkPermissions();
+
 </script>
 
 </body>
