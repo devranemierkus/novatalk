@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>NovaTalk - WhatsApp Tarzı Sesli Arama</title>
 <style>
-  /* Genel sayfa stili */
   body {
     margin:0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: #ece5dd;
@@ -33,7 +32,6 @@
     font-size: 22px;
     position: relative;
   }
-  /* Dönen halka animasyonu */
   .spinner {
     border: 6px solid rgba(255,255,255,0.3);
     border-top: 6px solid white;
@@ -47,7 +45,6 @@
     0% {transform: rotate(0deg);}
     100% {transform: rotate(360deg);}
   }
-  /* Log kısmı */
   #log {
     background: white;
     color: #222;
@@ -58,7 +55,6 @@
     border-top: 1px solid #ccc;
     white-space: pre-wrap;
   }
-  /* Alt butonlar */
   footer {
     display: flex;
     justify-content: space-around;
@@ -114,8 +110,8 @@
 <header>NovaTalk</header>
 
 <div id="callScreen">
-  <div id="spinner" class="spinner"></div>
-  <div id="callStatusText">ChatNova aranıyor...</div>
+  <div id="spinner" class="spinner" style="display:none;"></div>
+  <div id="callStatusText"></div>
   <div id="statusMsg"></div>
 </div>
 
@@ -135,7 +131,6 @@
   const callStatusText = document.getElementById('callStatusText');
   const statusMsg = document.getElementById('statusMsg');
   const log = document.getElementById('log');
-  const callScreen = document.getElementById('callScreen');
 
   let recognition = null;
   let recognizing = false;
@@ -155,8 +150,17 @@
     utterance.lang = 'tr-TR';
     utterance.pitch = 1.1;
     utterance.rate = 1;
+    utterance.onstart = () => {
+      // Bot konuşmaya başlarken mikrofondan dinlemeyi durdur
+      if (recognition && recognizing) {
+        recognition.stop();
+      }
+    };
     utterance.onend = () => {
       isSpeaking = false;
+      if (callActive && !recognizing) {
+        recognition.start();
+      }
       if (speechQueue.length > 0) {
         const nextText = speechQueue.shift();
         speak(nextText);
@@ -165,14 +169,12 @@
     speechSynthesis.speak(utterance);
   }
 
-  // Log'a mesaj yazdır ve otomatik scroll
   function logMesaj(msg) {
-    if(log.textContent.includes('başlatıldı') && msg.includes('başlatıldı')) return; // Aynı mesajı üst üste yazmasın
+    if (log.textContent.includes(msg)) return; // Aynı mesaj üst üste olmasın
     log.textContent += '\n' + msg;
     log.scrollTop = log.scrollHeight;
   }
 
-  // İnaktivite uyarısı için zamanlayıcı sıfırlama
   function resetInactivityTimer() {
     clearTimeout(inactivityTimer);
     inactivityTimer = setTimeout(() => {
@@ -181,7 +183,6 @@
     }, 8000);
   }
 
-  // Konuşmayı başlatan fonksiyon
   function baslatKonusma() {
     if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
       alert('Tarayıcınız ses tanımayı desteklemiyor!');
@@ -213,7 +214,7 @@
       recognizing = false;
       statusMsg.textContent = 'Ses tanıma durdu.';
       clearTimeout(inactivityTimer);
-      if (callActive) {
+      if (callActive && !isSpeaking) {
         recognition.start();
       }
     };
@@ -228,12 +229,10 @@
     recognition.start();
   }
 
-  // Basit bot cevabı (bunu API ile değiştirebilirsin)
+  // Bot cevabı (daha gelişmiş API ile değiştirilebilir)
   function botCevapVer(kullaniciSoz) {
     const soz = kullaniciSoz.toLowerCase();
 
-    // Burada gelişmiş yapay zeka API'si kullanılabilir
-    // Şimdilik örnek cevaplar:
     if (soz.includes('nasılsın')) {
       botKonus('İyiyim, teşekkür ederim! Sen nasılsın?');
     } else if (soz.includes('merhaba')) {
@@ -248,13 +247,11 @@
     }
   }
 
-  // Bot konuşması fonksiyonu
   function botKonus(text) {
     logMesaj('🤖 ChatNova: ' + text);
     speak(text);
   }
 
-  // Konuşmayı bitirme fonksiyonu
   function bitirKonusma() {
     if (recognition && recognizing) {
       recognition.stop();
@@ -268,7 +265,6 @@
     callStatusText.textContent = '';
   }
 
-  // Arama başlatma fonksiyonu
   function aramaBaslat() {
     callActive = true;
     btnAudioStart.style.display = 'none';
@@ -277,7 +273,6 @@
     spinner.style.display = 'block';
     callStatusText.textContent = 'ChatNova aranıyor...';
 
-    // 4 saniye dönen animasyon ve "aranıyor" yazısı göster
     setTimeout(() => {
       spinner.style.display = 'none';
       callStatusText.textContent = 'ALO!';
