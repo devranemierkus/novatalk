@@ -106,6 +106,7 @@
     let listening = false;
     let idleTimer = null;
     const idleTimeout = 5000; // 5 saniye boşta kalınca uyarı
+    let idleUyariVerildi = false; // sadece 1 kere uyarı için flag
 
     // Sesli bot konuşma fonksiyonu - optimize ses
     function botKonus(text) {
@@ -119,13 +120,13 @@
         utterance.volume = 1.0;
 
         utterance.onerror = (e) => {
-          status.textContent = 'DURUM: Bot konuşma hatası oluştu.';
+          status.textContent = 'DURUM: ChatNova konuşma hatası oluştu.';
           console.error('TTS Error:', e.error);
         };
 
         speechSynthesis.speak(utterance);
       } catch (e) {
-        status.textContent = 'DURUM: Bot konuşma fonksiyonunda hata.';
+        status.textContent = 'DURUM: ChatNova konuşma fonksiyonunda hata.';
         console.error(e);
       }
     }
@@ -133,10 +134,13 @@
     function resetIdleTimer() {
       if (idleTimer) clearTimeout(idleTimer);
       idleTimer = setTimeout(() => {
-        botKonus('Hadi dostum, konuşacak mısın?');
-        log.textContent += '\n🤖 Bot: Hadi dostum, konuşacak mısın?';
-        log.scrollTop = log.scrollHeight;
-        resetIdleTimer();
+        if(!idleUyariVerildi) {
+          botKonus('Konuşmayı bekliyorum dostum...');
+          log.textContent += '\n🤖 ChatNova: Konuşmayı bekliyorum dostum...';
+          log.scrollTop = log.scrollHeight;
+          idleUyariVerildi = true;
+        }
+        // sonra tekrar etme, sadece 1 kere uyarı yeterli
       }, idleTimeout);
     }
 
@@ -154,7 +158,9 @@
         recognition.interimResults = false;
 
         recognition.onresult = (event) => {
+          idleUyariVerildi = false; // Konuşunca tekrar uyarı verilebilir hale getir
           resetIdleTimer();
+
           const speech = event.results[event.results.length -1][0].transcript.toLowerCase();
           log.textContent += `\n👤 Sen: ${speech}`;
           log.scrollTop = log.scrollHeight;
@@ -195,6 +201,7 @@
       }
       status.textContent = 'Durum: Sesli konuşma durduruldu.';
       if (idleTimer) clearTimeout(idleTimer);
+      idleUyariVerildi = false;
       btnVoice.textContent = '🎤 Sesli Konuşmayı Başlat';
     }
 
@@ -209,7 +216,7 @@
       }
       else cevap = 'Üzgünüm, bunu anlayamadım. Lütfen tekrar eder misin?';
 
-      log.textContent += `\n🤖 Bot: ${cevap}`;
+      log.textContent += `\n🤖 ChatNova: ${cevap}`;
       log.scrollTop = log.scrollHeight;
       botKonus(cevap);
     }
