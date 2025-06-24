@@ -48,7 +48,6 @@
     }
     .eye.left { left: 30px; }
     .eye.right { right: 30px; }
-
     .mouth {
       width: 60px;
       height: 20px;
@@ -60,16 +59,13 @@
       transform: translateX(-50%);
       transition: transform 0.2s;
     }
-
     .mouth.talking {
       transform: translateX(-50%) scaleY(1.6);
     }
-
     @keyframes blink {
       0%, 100% { transform: scaleY(1); }
       50% { transform: scaleY(0.1); }
     }
-
     #video {
       margin-top: 20px;
       width: 90%;
@@ -77,7 +73,6 @@
       display: none;
       border-radius: 10px;
     }
-
     #log {
       width: 90%;
       max-width: 400px;
@@ -89,22 +84,20 @@
       overflow-y: auto;
       white-space: pre-wrap;
     }
-
     #statusMsg {
       font-size: 16px;
       margin-top: 10px;
     }
-
     footer {
       display: flex;
+      flex-wrap: wrap;
       justify-content: center;
       padding: 12px;
       background: #e0e0e0;
     }
-
     button {
       padding: 12px 20px;
-      margin: 0 10px;
+      margin: 5px 10px;
       font-size: 16px;
       border-radius: 30px;
       border: none;
@@ -112,7 +105,6 @@
       background-color: #00796b;
       color: white;
     }
-
     #securityNote {
       text-align: center;
       font-size: 12px;
@@ -138,16 +130,18 @@
   <footer>
     <button onclick="startCall(false)">🎤 Sesli Arama</button>
     <button onclick="startCall(true)">📹 Görüntülü Arama</button>
+    <button onclick="stopRecognition()" id="stopListenBtn" style="display:none; background:#ffa726">🔇 Konuşmayı Durdur</button>
     <button onclick="endCall()" id="endBtn" style="display:none; background:#d32f2f;">❌ Kapat</button>
   </footer>
 
-  <div id="securityNote">🔒 Bu uygulama sizin gizliliğinize saygı duyar. Mikrofon ve kamera yalnızca arama sırasında çalışır.</div>
+  <div id="securityNote">🔒 Mikrofon ve kamera yalnızca arama sırasında aktifleşir. Verileriniz saklanmaz.</div>
 
   <script>
     const log = document.getElementById("log");
     const statusMsg = document.getElementById("statusMsg");
     const video = document.getElementById("video");
     const endBtn = document.getElementById("endBtn");
+    const stopListenBtn = document.getElementById("stopListenBtn");
     const mouth = document.getElementById("mouth");
 
     let recognition;
@@ -181,6 +175,7 @@
       video.style.display = "none";
       statusMsg.textContent = "📞 Arama sona erdi.";
       endBtn.style.display = "none";
+      stopListenBtn.style.display = "none";
       clearTimeout(inactivityTimer);
     }
 
@@ -225,6 +220,13 @@
       resetInactivity();
     }
 
+    function stopRecognition() {
+      if (recognition) {
+        recognition.stop();
+        statusMsg.textContent = "⏸️ Dinleme durduruldu.";
+      }
+    }
+
     function respondTo(text) {
       let response = "Bunu anlayamadım.";
       const lower = text.toLowerCase();
@@ -238,6 +240,7 @@
     function startCall(videoEnabled) {
       callStarted = true;
       endBtn.style.display = "inline-block";
+      stopListenBtn.style.display = "inline-block";
       statusMsg.textContent = "📞 ChatNova aranıyor...";
       navigator.mediaDevices.getUserMedia({ audio: true, video: videoEnabled })
         .then(stream => {
@@ -247,8 +250,10 @@
             video.srcObject = stream;
             video.style.display = "block";
           }
-          statusMsg.textContent = "✅ Bağlandı. ChatNova seni dinliyor...";
-          startRecognition();
+          setTimeout(() => {
+            statusMsg.textContent = "✅ Bağlandı. ChatNova seni dinliyor...";
+            startRecognition();
+          }, 4000);
         })
         .catch(err => {
           statusMsg.textContent = "❌ İzin alınamadı: " + err.message;
@@ -256,4 +261,4 @@
     }
   </script>
 </body>
-  </html>
+</html>
