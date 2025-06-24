@@ -93,14 +93,14 @@
   </div>
 
   <div id="btns" style="margin-top:10px;">
-    <button id="btnTalkToggle" disabled>🎙 Konuşmak için tıkla</button>
+    <button id="btnTalkToggle" disabled>🎙 Basılı Tut Konuş</button>
     <button id="btnEndCall" disabled>🔴 Aramayı Bitir</button>
   </div>
 
   <div id="log">📝 Sohbet burada gözükecek...</div>
 </div>
 
-<div id="securityNote">🔒 Mikrofon ve kamera izinleri yalnızca siz başlattığınızda aktif olur. Verileriniz asla kaydedilmez veya paylaşılmaz.</div>
+<div id="securityNote">🔒 Mikrofon ve kamera izinleri yalnızca arama başlatıldığında aktif olur. Verileriniz kaydedilmez veya paylaşılmaz.</div>
 
 <script>
   const status = document.getElementById('status');
@@ -120,7 +120,6 @@
   let isVideoCall = false;
   let audioStream = null;
   let videoStream = null;
-  let inactivityTimeout = null;
   let isSpeaking = false;
   let isListening = false;
 
@@ -198,21 +197,18 @@
     recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.lang = 'tr-TR';
     recognition.interimResults = false;
-    recognition.continuous = true;
+    recognition.continuous = false;
 
     recognition.onstart = () => {
       status.textContent = "🎧 Dinleniyor...";
       isListening = true;
-      btnTalkToggle.textContent = "🔇 Konuşmayı Durdur";
-      btnTalkToggle.disabled = false;
+      animateMouth(true);
     };
     recognition.onresult = (event) => {
-      clearTimeout(inactivityTimeout);
       const lastResult = event.results[event.results.length - 1];
       const transcript = lastResult[0].transcript.trim();
       logMessage("👤 Sen: " + transcript);
       botReply(transcript);
-      resetInactivityTimer();
     };
     recognition.onerror = (event) => {
       if(event.error === 'not-allowed' || event.error === 'service-not-allowed') {
@@ -225,15 +221,12 @@
       }
     };
     recognition.onend = () => {
-      if(isCalling && isListening) recognition.start();
-      else {
-        btnTalkToggle.textContent = "🎙 Konuşmak için tıkla";
-        btnTalkToggle.disabled = false;
-        status.textContent = isCalling ? "Arama açık, konuşmak için butona tıkla." : "Hazır.";
-      }
+      isListening = false;
+      btnTalkToggle.textContent = "🎙 Basılı Tut Konuş";
+      status.textContent = "Arama açık, basılı tutup konuşabilirsiniz.";
+      animateMouth(false);
     };
     recognition.start();
-    resetInactivityTimer();
   }
 
   // Konuşmayı durdur
@@ -241,24 +234,10 @@
     if(recognition){
       recognition.stop();
       isListening = false;
-      btnTalkToggle.textContent = "🎙 Konuşmak için tıkla";
-      status.textContent = "Arama açık, konuşmak için butona tıkla.";
+      btnTalkToggle.textContent = "🎙 Basılı Tut Konuş";
+      status.textContent = "Arama açık, basılı tutup konuşabilirsiniz.";
+      animateMouth(false);
     }
-  }
-
-  // Konuşma aç/kapa toggle
-  function toggleRecognition() {
-    if(isListening) stopRecognition();
-    else startRecognition();
-  }
-
-  // 30 saniye sessizlik olursa aramayı kapat
-  function resetInactivityTimer() {
-    clearTimeout(inactivityTimeout);
-    inactivityTimeout = setTimeout(() => {
-      speak("Dostum, konuşmuyorsun. Kapatmak zorundayım.");
-      endCall();
-    }, 30000);
   }
 
   // Arama başlat
@@ -270,9 +249,8 @@
     status.textContent = "ChatNova aranıyor...";
     btnToggleCall.disabled = true;
     btnToggleVideoCall.disabled = true;
-    btnTalkToggle.disabled = true;
+    btnTalkToggle.disabled = false;
     btnEndCall.disabled = false;
-    btnTalkToggle.textContent = "🎙 Konuşmak için tıkla";
     btnTalkToggle.style.display = "inline-block";
 
     try {
@@ -287,10 +265,8 @@
         videoLocal.style.display = "none";
         avatar.style.display = "block";
       }
-      status.textContent = "Görüşme başladı.";
+      status.textContent = "Görüşme başladı. Basılı tutup konuşabilirsiniz.";
       speak("Selam! Seni dinliyorum.");
-      isListening = false;
-      btnTalkToggle.disabled = false;
     } catch(e) {
       endCall();
     }
@@ -308,21 +284,17 @@
     btnToggleCall.disabled = false;
     btnToggleVideoCall.disabled = false;
     btnTalkToggle.disabled = true;
-    btnTalkToggle.textContent = "🎙 Konuşmak için tıkla";
-    btnTalkToggle.style.display = "none";
     btnEndCall.disabled = true;
+    btnTalkToggle.style.display = "none";
 
-    // Ses tanımayı durdur
     if(recognition){
       recognition.abort();
       recognition = null;
       isListening = false;
     }
 
-    // Ağız animasyonunu kapat
     animateMouth(false);
 
-    // Medya streamlerini durdur
     if(audioStream){
       audioStream.getTracks().forEach(track => track.stop());
       audioStream = null;
@@ -332,18 +304,34 @@
       videoStream = null;
     }
 
-    // Video ve avatarı gizle
     videoLocal.style.display = "none";
     avatar.style.display = "none";
-
-    clearTimeout(inactivityTimeout);
   }
 
-  // Buton olayları
+  // Konuşma tuşu basılı tutunca mikrofon aç, bırakınca kapa
+  btnTalkToggle.addEventListener('mousedown', () => {
+    if(!isCalling || isListening) return;
+    startRecognition();
+  });
+  btnTalkToggle.addEventListener('mouseup', () => {
+    if(!isCalling || !isListening) return;
+    stopRecognition();
+  });
+  btnTalkToggle.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if(!isCalling || isListening) return;
+    startRecognition();
+  });
+  btnTalkToggle.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    if(!isCalling || !isListening) return;
+    stopRecognition();
+  });
+
   btnToggleCall.onclick = () => startCall(false);
   btnToggleVideoCall.onclick = () => startCall(true);
-  btnTalkToggle.onclick = () => toggleRecognition();
   btnEndCall.onclick = () => endCall();
+
 </script>
 </body>
 </html>
