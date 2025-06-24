@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>NovaTalk - Gelişmiş Sesli & Görüntülü Sohbet</title>
+<title>NovaTalk - Sesli & Görüntülü Sohbet</title>
 <style>
   body {
     margin: 0; font-family: Arial, sans-serif; background: #ece5dd; text-align: center;
+    user-select: none;
   }
   header {
     background: #075e54; color: white; padding: 16px; font-size: 24px;
   }
   #callScreen {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    height: 80vh; background: #128c7e; color: white;
-    position: relative;
+    height: 75vh; background: #128c7e; color: white; position: relative;
   }
   #spinner {
     border: 6px solid rgba(255,255,255,0.3);
@@ -23,46 +23,72 @@
     width: 60px; height: 60px;
     animation: spin 1s linear infinite;
     margin-bottom: 20px;
+    display: none;
   }
   @keyframes spin { 0% {transform: rotate(0deg);} 100% {transform: rotate(360deg);} }
-
-  #video {
+  video {
     width: 90%; max-width: 400px; margin-top: 20px; border-radius: 12px; display: none;
   }
-
   #avatar {
-    width: 120px; height: 120px; margin-top: 20px;
-    background-image: url('https://i.imgur.com/IaUrttj.png'); /* Düzgün çalışan avatar */
-    background-size: cover; border-radius: 50%;
-    animation: blink 5s infinite;
+    width: 140px; height: 140px; margin-top: 20px;
+    border-radius: 50%;
+    background: #004d40;
+    position: relative;
+    box-shadow: 0 0 15px #00ff99;
   }
-  @keyframes blink {
-    0%, 94%, 100% { background-position: center top; }
-    95%, 99% { background-position: center bottom; }
+  /* Gözler */
+  #eye-left, #eye-right {
+    position: absolute;
+    top: 50px; width: 30px; height: 30px;
+    background: white; border-radius: 50%;
+    border: 3px solid #00251a;
+    overflow: hidden;
   }
-
+  #eye-left { left: 30px; }
+  #eye-right { right: 30px; }
+  .pupil {
+    position: absolute;
+    top: 7px; left: 7px;
+    width: 16px; height: 16px;
+    background: black;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+  }
+  /* Ağız */
+  #mouth {
+    position: absolute;
+    bottom: 40px; left: 50%; transform: translateX(-50%);
+    width: 70px; height: 30px;
+    background: #c62828;
+    border-radius: 0 0 50px 50px;
+    overflow: hidden;
+  }
+  #mouth.open {
+    height: 50px;
+    border-radius: 0 0 70px 70px;
+    background: #ff1744;
+  }
+  #securityNote {
+    font-size: 12px; color: #444; margin: 15px auto 30px; max-width: 400px;
+    text-align: center;
+  }
   #log {
     background: white; margin: 10px auto; padding: 10px; border-radius: 8px;
-    min-height: 100px; max-width: 400px; overflow-y: auto; white-space: pre-wrap;
-    color: #333; text-align: left;
+    min-height: 120px; max-width: 400px; overflow-y: auto; white-space: pre-wrap;
+    color: #333; text-align: left; font-family: monospace;
   }
-
   footer {
     display: flex; justify-content: center; gap: 15px; padding: 15px; background: #f0f0f0;
   }
   button {
     padding: 12px 20px; font-size: 16px; border: none; border-radius: 30px;
-    cursor: pointer; min-width: 120px;
+    cursor: pointer; min-width: 130px;
   }
   #startAudioBtn { background: #25d366; color: white; }
   #startVideoBtn { background: #34b7f1; color: white; }
   #endCallBtn { background: #dc3545; color: white; display: none; }
-  
   #status, #statusMsg {
     margin-top: 10px; font-size: 18px;
-  }
-  #securityNote {
-    font-size: 12px; color: #444; margin-top: 15px; max-width: 400px; margin-left: auto; margin-right: auto;
   }
 </style>
 </head>
@@ -71,9 +97,13 @@
 
 <div id="callScreen">
   <div id="spinner"></div>
-  <div id="status">ChatNova aranıyor...</div>
+  <div id="status">Başlamak için butona tıklayın.</div>
   <video id="video" autoplay playsinline muted></video>
-  <div id="avatar" title="ChatNova Avatar"></div>
+  <div id="avatar" aria-label="ChatNova Avatar" role="img">
+    <div id="eye-left"><div class="pupil"></div></div>
+    <div id="eye-right"><div class="pupil"></div></div>
+    <div id="mouth"></div>
+  </div>
   <div id="statusMsg"></div>
 </div>
 
@@ -97,21 +127,42 @@
   const startVideoBtn = document.getElementById('startVideoBtn');
   const endCallBtn = document.getElementById('endCallBtn');
 
+  const eyeLeftPupil = document.querySelector('#eye-left .pupil');
+  const eyeRightPupil = document.querySelector('#eye-right .pupil');
+  const mouth = document.getElementById('mouth');
+
   let recognition;
   let inactivityTimer;
   let callActive = false;
   let audioStream, videoStream;
   let botSpokenIntro = false;
 
-  // Bot konuşma fonksiyonu
+  // Göz hareketi rastgele (basit)
+  function randomEyeMovement() {
+    const max = 8; // px max hareket
+    const x = Math.floor(Math.random()*max*2 - max);
+    const y = Math.floor(Math.random()*max*2 - max);
+    eyeLeftPupil.style.transform = `translate(${x}px, ${y}px)`;
+    eyeRightPupil.style.transform = `translate(${x}px, ${y}px)`;
+  }
+
+  // Ağzı aç/kapa animasyon (konuşma sırasında)
+  function mouthOpen(open) {
+    if(open) mouth.classList.add('open');
+    else mouth.classList.remove('open');
+  }
+
+  // Bot konuşma (sesli)
   function botSpeak(text) {
-    if (speechSynthesis.speaking) {
-      speechSynthesis.cancel();
-    }
+    if (speechSynthesis.speaking) speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = 'tr-TR';
     utter.pitch = 1.1;
     utter.rate = 1;
+
+    utter.onstart = () => mouthOpen(true);
+    utter.onend = () => mouthOpen(false);
+
     speechSynthesis.speak(utter);
   }
 
@@ -121,7 +172,7 @@
     log.scrollTop = log.scrollHeight;
   }
 
-  // Konuşmayı durdur
+  // Aramayı sonlandır
   function endCall() {
     callActive = false;
     clearTimeout(inactivityTimer);
@@ -139,16 +190,17 @@
     statusMsg.textContent = '';
   }
 
-  // Basit ChatNova cevabı (Buraya dilersen API entegrasyonu eklenebilir)
+  // Basit ChatNova cevabı (İstersen API ile genişletebilirsin)
   function botReply(userText) {
-    // Basit örnek: her şeyi anlar gibi cevap ver
     if (!userText.trim()) return '...';
 
-    if (userText.includes('nasılsın')) return 'İyiyim, teşekkür ederim! Sen nasılsın?';
-    if (userText.includes('merhaba')) return 'Merhaba! Sana nasıl yardımcı olabilirim?';
-    if (userText.includes('görüşürüz') || userText.includes('hoşça kal')) return 'Görüşmek üzere! İyi günler!';
-    if (userText.includes('hava')) return 'Bugün hava çok güzel, dışarı çıkmanı tavsiye ederim.';
-    // Daha doğal cevaplar için API kullanmalısın
+    const lower = userText.toLowerCase();
+
+    if (lower.includes('nasılsın')) return 'İyiyim, teşekkür ederim! Sen nasılsın?';
+    if (lower.includes('merhaba')) return 'Merhaba! Sana nasıl yardımcı olabilirim?';
+    if (lower.includes('görüşürüz') || lower.includes('hoşça kal')) return 'Görüşmek üzere! İyi günler!';
+    if (lower.includes('hava')) return 'Bugün hava çok güzel, dışarı çıkmanı tavsiye ederim.';
+    if (lower.includes('teşekkür')) return 'Rica ederim, her zaman buradayım.';
     return 'Bunu tam anlayamadım, lütfen tekrar eder misin?';
   }
 
@@ -171,7 +223,7 @@
       const userText = e.results[0][0].transcript;
       logMessage('👤 Sen: ' + userText);
       recognition.stop(); // Döngüyü kes
-      const reply = botReply(userText.toLowerCase());
+      const reply = botReply(userText);
       logMessage('🤖 ChatNova: ' + reply);
       botSpeak(reply);
       resetInactivity();
@@ -203,8 +255,7 @@
     spinner.style.display = 'block';
     status.textContent = 'ChatNova aranıyor...';
     avatar.style.display = 'block';
-    video.style.display = 'none';
-    if (withVideo) video.style.display = 'block';
+    video.style.display = withVideo ? 'block' : 'none';
 
     startAudioBtn.style.display = 'none';
     startVideoBtn.style.display = 'none';
@@ -223,17 +274,29 @@
             video.srcObject = stream;
           }
           startRecognition();
+          eyeMovementInterval = setInterval(randomEyeMovement, 1500);
         })
         .catch(err => {
           status.textContent = 'İzin alınamadı: ' + err.message;
           endCall();
         });
-    }, 4000);
+    }, 3000);
   }
 
+  // Eventler
   startAudioBtn.onclick = () => startCall(false);
   startVideoBtn.onclick = () => startCall(true);
-  endCallBtn.onclick = endCall;
+  endCallBtn.onclick = () => {
+    clearInterval(eyeMovementInterval);
+    endCall();
+  };
+
+  // Başlangıçta avatar gizli
+  avatar.style.display = 'none';
+
+  // Göz hareketi intervali için değişken
+  let eyeMovementInterval;
+
 </script>
 </body>
 </html>
