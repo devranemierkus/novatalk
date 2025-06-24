@@ -13,19 +13,25 @@
     }
     button {
       font-size: 18px;
-      padding: 15px 30px;
+      padding: 12px 25px;
       margin: 10px;
       border-radius: 12px;
       border: none;
       background-color: #4caf50;
       color: white;
       cursor: pointer;
-      min-width: 160px;
+      min-width: 150px;
       transition: background-color 0.3s;
       user-select: none;
     }
     button:hover {
       background-color: #45a049;
+    }
+    button.stop {
+      background-color: #d9534f;
+    }
+    button.stop:hover {
+      background-color: #c9302c;
     }
     video {
       margin-top: 20px;
@@ -50,9 +56,11 @@
       border-radius: 8px;
       font-size: 15px;
       white-space: pre-wrap;
-      min-height: 60px;
+      min-height: 80px;
       color: #0a0a0a;
       border: 1px solid #9cc4ff;
+      overflow-y: auto;
+      max-height: 150px;
     }
   </style>
 </head>
@@ -60,8 +68,14 @@
 
   <h1>NovaTalk</h1>
 
-  <button id="btnAudio">🎤 Sesli Konuşma Başlat</button>
-  <button id="btnVideo">📹 Görüntülü Konuşma Başlat</button>
+  <div>
+    <button id="btnAudioStart">🎤 Sesli Konuşma Başlat</button>
+    <button id="btnAudioStop" class="stop" disabled>⏹️ Sesli Konuşmayı Durdur</button>
+  </div>
+  <div>
+    <button id="btnVideoStart">📹 Görüntülü Konuşma Başlat</button>
+    <button id="btnVideoStop" class="stop" disabled>⏹️ Görüntülü Konuşmayı Durdur</button>
+  </div>
 
   <video id="video" autoplay playsinline></video>
 
@@ -69,8 +83,10 @@
   <div id="log">Konuşma logu buraya gelecek...</div>
 
   <script>
-    const btnAudio = document.getElementById('btnAudio');
-    const btnVideo = document.getElementById('btnVideo');
+    const btnAudioStart = document.getElementById('btnAudioStart');
+    const btnAudioStop = document.getElementById('btnAudioStop');
+    const btnVideoStart = document.getElementById('btnVideoStart');
+    const btnVideoStop = document.getElementById('btnVideoStop');
     const video = document.getElementById('video');
     const status = document.getElementById('status');
     const log = document.getElementById('log');
@@ -78,6 +94,7 @@
     let recognition = null;
     let audioStream = null;
     let videoStream = null;
+    let isListening = false;
 
     function botSpeak(text) {
       if (speechSynthesis.speaking) {
@@ -104,11 +121,13 @@
       recognition.onstart = () => {
         status.textContent = 'Konuşmanı dinliyorum...';
         log.textContent = '';
+        isListening = true;
       };
 
       recognition.onresult = (event) => {
         const text = event.results[0][0].transcript.toLowerCase();
-        log.textContent = 'Sen söyledin: ' + text;
+        log.textContent += '\nSen söyledin: ' + text;
+        log.scrollTop = log.scrollHeight;
         botReply(text);
       };
 
@@ -117,7 +136,12 @@
       };
 
       recognition.onend = () => {
-        status.textContent = 'Ses tanıma durdu.';
+        if(isListening) {
+          recognition.start(); // Otomatik tekrar başlat
+          status.textContent = 'Dinlemeye devam ediliyor...';
+        } else {
+          status.textContent = 'Ses tanıma durdu.';
+        }
       };
 
       recognition.start();
@@ -136,27 +160,42 @@
       }
     }
 
-    function stopAll() {
-      if (recognition) {
+    function stopRecognition() {
+      if(recognition) {
+        isListening = false;
         recognition.stop();
       }
-      if (audioStream) {
-        audioStream.getTracks().forEach(t => t.stop());
-      }
-      if (videoStream) {
-        videoStream.getTracks().forEach(t => t.stop());
-        video.style.display = 'none';
-      }
-      status.textContent = 'Konuşma sonlandırıldı.';
-      log.textContent = '';
     }
 
-    btnAudio.onclick = () => {
+    function stopStreams() {
+      if(audioStream) {
+        audioStream.getTracks().forEach(t => t.stop());
+        audioStream = null;
+      }
+      if(videoStream) {
+        videoStream.getTracks().forEach(t => t.stop());
+        videoStream = null;
+      }
+      video.style.display = 'none';
+    }
+
+    function stopAll() {
+      stopRecognition();
+      stopStreams();
+      status.textContent = 'Konuşma sonlandırıldı.';
+    }
+
+    btnAudioStart.onclick = () => {
       stopAll();
       navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
           audioStream = stream;
+          video.style.display = 'none';
           status.textContent = 'Mikrofon izni verildi, dinleniyor...';
+          btnAudioStart.disabled = true;
+          btnAudioStop.disabled = false;
+          btnVideoStart.disabled = true;
+          btnVideoStop.disabled = true;
           startRecognition();
         })
         .catch(err => {
@@ -164,7 +203,16 @@
         });
     };
 
-    btnVideo.onclick = () => {
+    btnAudioStop.onclick = () => {
+      stopAll();
+      btnAudioStart.disabled = false;
+      btnAudioStop.disabled = true;
+      btnVideoStart.disabled = false;
+      btnVideoStop.disabled = true;
+      log.textContent += '\nSesli konuşma durduruldu.';
+    };
+
+    btnVideoStart.onclick = () => {
       stopAll();
       navigator.mediaDevices.getUserMedia({ video: true, audio: true })
         .then(stream => {
@@ -172,11 +220,24 @@
           video.srcObject = stream;
           video.style.display = 'block';
           status.textContent = 'Kamera ve mikrofon izni verildi, dinleniyor...';
+          btnVideoStart.disabled = true;
+          btnVideoStop.disabled = false;
+          btnAudioStart.disabled = true;
+          btnAudioStop.disabled = true;
           startRecognition();
         })
         .catch(err => {
           status.textContent = 'Kamera veya mikrofon izni reddedildi: ' + err.message;
         });
+    };
+
+    btnVideoStop.onclick = () => {
+      stopAll();
+      btnVideoStart.disabled = false;
+      btnVideoStop.disabled = true;
+      btnAudioStart.disabled = false;
+      btnAudioStop.disabled = true;
+      log.textContent += '\nGörüntülü konuşma durduruldu.';
     };
   </script>
 
