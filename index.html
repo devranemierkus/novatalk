@@ -1,12 +1,13 @@
-<!DOCTYPE html>
-<html lang="tr">
+<!DOCTYPE html><html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <title>NovaTalk - Sesli Konuşma</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style id="tema-stil">
+  <meta charset="UTF-8">
+  <title>NovaTalk - Sesli & Görüntülü Sohbet + Nesne Tanıma</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+  <style>
     body {
-      background: #121212;
+      background: #111;
       color: #eee;
       font-family: Arial, sans-serif;
       text-align: center;
@@ -15,172 +16,151 @@
     button {
       font-size: 16px;
       margin: 10px;
-      padding: 12px 20px;
+      padding: 10px 20px;
       border-radius: 10px;
       border: none;
-      cursor: pointer;
-      transition: background-color 0.3s;
       background-color: #4caf50;
       color: white;
+      cursor: pointer;
     }
-    button:hover {
-      background-color: #45a049;
+    video, canvas {
+      margin-top: 20px;
+      width: 300px;
+      border-radius: 12px;
     }
     #log {
-      margin-top: 20px;
-      background: #1e1e1e;
+      background: #222;
       padding: 10px;
+      margin-top: 20px;
       border-radius: 10px;
-      text-align: left;
       max-width: 400px;
       margin-left: auto;
       margin-right: auto;
       white-space: pre-wrap;
-      border: 1px solid #4caf50;
-      min-height: 120px;
-      overflow-y: auto;
-    }
-    #gecmis {
-      margin-top: 10px;
-      font-size: 14px;
-      color: #ccc;
-      max-width: 400px;
-      margin-left: auto;
-      margin-right: auto;
-      text-align: left;
-      font-style: italic;
     }
     #guvenlik {
       margin-top: 30px;
       font-size: 14px;
       color: #aaa;
+      border-top: 1px solid #444;
+      padding-top: 20px;
       max-width: 400px;
       margin-left: auto;
       margin-right: auto;
-      border-top: 1px solid #444;
-      padding-top: 20px;
-      text-align: left;
-      line-height: 1.4;
     }
   </style>
 </head>
-<body>
-
-<h1>NovaTalk 🤖</h1>
-
+<body><h1>NovaTalk 🤖</h1>
 <button onclick="temaDegistir()">🎨 Tema Değiştir</button>
-<button onclick="baslatSesli()">🎤 Sesli Konuşmayı Başlat</button>
+<button onclick="baslatSesli()">🎤 Sesli Konuş</button>
 <button onclick="durdurSesli()">🛑 Konuşmayı Durdur</button>
-
-<div id="status">Durum: Bekleniyor...</div>
+<button onclick="baslatGoruntu()">🎥 Görüntü + Nesne Tanıma</button>
+<button onclick="durdurGoruntu()">📴 Görüntüğü Durdur</button><video id="video" autoplay muted playsinline></video> <canvas id="canvas"></canvas>
 
 <div id="log">📝 Konuşma logu buraya gelecek...</div>
-<div id="gecmis">🔁 Tarayıcıda geçmiş saklanıyor...</div>
-
 <div id="guvenlik">
-  🔒 <strong>Güvenlik Bilgisi:</strong><br />
-  NovaTalk, tüm konuşmaları <u>sadece sizin cihazınızda işler</u>.<br />
-  Sesler ve görüntüler hiçbir şekilde kaydedilmez veya sunuculara gönderilmez.<br />
-  Kimse sizi izleyemez ya da dinleyemez. Tamamen güvenli ve gizlidir.
-</div>
+  🔒 <strong>Güvenlik Bilgisi:</strong><br>
+  NovaTalk cihaz üzerinde çalışır. Ses ve görüntüler kaydedilmez veya gönderilmez.<br>
+  Kimse sizi izleyemez ya da dinleyemez. Tamamen gizlidir.
+</div><script>
+let recognition, model, ctx, videoStream;
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+ctx = canvas.getContext('2d');
+const log = document.getElementById('log');
 
-<script>
-  let recognition;
-  const log = document.getElementById("log");
-  const statusDiv = document.getElementById("status");
-  const gecmisDiv = document.getElementById("gecmis");
+function botKonus(text) {
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'tr-TR';
+  speechSynthesis.speak(utter);
+}
 
-  function botKonus(text) {
-    if (speechSynthesis.speaking) speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = "tr-TR";
-    utter.pitch = 1.1;
-    utter.rate = 0.95;
-    speechSynthesis.speak(utter);
-  }
+function logla(yazi) {
+  log.textContent += `\n${yazi}`;
+  log.scrollTop = log.scrollHeight;
+}
 
-  function baslatSesli() {
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(() => {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        recognition = new SpeechRecognition();
-        recognition.lang = "tr-TR";
-        recognition.continuous = true;
+function baslatSesli() {
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SR();
+    recognition.lang = 'tr-TR';
+    recognition.continuous = true;
 
-        recognition.onstart = () => {
-          statusDiv.textContent = "Durum: ChatNova seni dinliyor...";
-          botKonus("Selam! Ben ChatNova. Seni dinliyorum...");
-        };
+    recognition.onresult = e => {
+      const text = e.results[e.results.length - 1][0].transcript;
+      logla('👤: ' + text);
+      botCevapla(text);
+    };
+    recognition.start();
+    botKonus('Selam! Ben ChatNova. Seni dinliyorum...');
+  }).catch(() => alert('Mikrofon izni gerek!'));
+}
 
-        recognition.onresult = (event) => {
-          const text = event.results[event.results.length - 1][0].transcript;
-          log.textContent += `\n👤 Sen: ${text}`;
-          localStorage.setItem("konusmaLog", log.textContent);
-          cevapVer(text);
-        };
+function durdurSesli() {
+  if (recognition) recognition.stop();
+  botKonus('Konuşma durduruldu.');
+}
 
-        recognition.onerror = (event) => {
-          statusDiv.textContent = "⚠️ Ses tanıma hatası: " + event.error;
-        };
+function botCevapla(text) {
+  let cevap = '';
+  const lower = text.toLowerCase();
+  if (lower.includes('merhaba')) cevap = 'Merhaba! Sana nasıl yardımcı olabilirim?';
+  else if (lower.includes('nasılsın')) cevap = 'İyiyim, sen nasılsın?';
+  else if (lower.includes('görüşürüz')) cevap = 'Görüşmek üzere!';
+  else cevap = 'Bunu tam anlayamadım, tekrar eder misin?';
+  botKonus(cevap);
+  logla('🤖 ChatNova: ' + cevap);
+}
 
-        recognition.onend = () => {
-          statusDiv.textContent = "Durum: Dinleme sona erdi.";
-        };
+function baslatGoruntu() {
+  navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
+    video.srcObject = stream;
+    videoStream = stream;
+    video.style.display = 'block';
+    canvas.width = video.videoWidth || 300;
+    canvas.height = video.videoHeight || 300;
+    tf.loadGraphModel;
+    cocoSsd.load().then(m => {
+      model = m;
+      tanimayaBasla();
+    });
+  }).catch(() => alert('Kamera izni gerek!'));
+}
 
-        recognition.start();
-      })
-      .catch((err) => {
-        statusDiv.textContent = "❌ Mikrofon izni reddedildi.";
+function tanimayaBasla() {
+  function loop() {
+    if (!videoStream) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    model.detect(video).then(predictions => {
+      predictions.forEach(p => {
+        ctx.beginPath();
+        ctx.rect(...p.bbox);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#00FF00';
+        ctx.fillStyle = '#00FF00';
+        ctx.stroke();
+        ctx.fillText(p.class, p.bbox[0], p.bbox[1] > 10 ? p.bbox[1] - 5 : 10);
       });
+    });
+    requestAnimationFrame(loop);
   }
+  loop();
+}
 
-  function durdurSesli() {
-    if (recognition) {
-      recognition.stop();
-      statusDiv.textContent = "Durum: Konuşma durduruldu.";
-    }
+function durdurGoruntu() {
+  if (videoStream) {
+    videoStream.getTracks().forEach(t => t.stop());
+    videoStream = null;
+    video.style.display = 'none';
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
   }
+}
 
-  function cevapVer(text) {
-    let cevap = "";
-    text = text.toLowerCase();
-
-    if (text.includes("nasılsın")) cevap = "İyiyim, sen nasılsın?";
-    else if (text.includes("merhaba")) cevap = "Merhaba! Sana nasıl yardımcı olabilirim?";
-    else if (text.includes("görüşürüz")) cevap = "Görüşmek üzere, iyi günler!";
-    else if (text.includes("adın ne") || text.includes("kimsin")) cevap = "Ben ChatNova, sana yardımcı olmak için buradayım.";
-    else if (text.includes("seni kim yaptı") || text.includes("seni kim yarattı")) cevap = "Beni Emir Devran'ın zekası ve hayal gücü yarattı.";
-    else if (text.includes("ne yapıyorsun") || text.includes("ne yapabilirsin")) cevap = "Seninle konuşabilir, sohbet edebilir ve yardımcı olabilirim.";
-    else if (text.includes("hava nasıl")) cevap = "Üzgünüm, hava durumunu şu an bilemiyorum ama senin havan güzel olsun!";
-    else cevap = "Bunu tam anlayamadım, başka bir şekilde sorabilir misin?";
-
-    log.textContent += `\n🤖 ChatNova: ${cevap}`;
-    localStorage.setItem("konusmaLog", log.textContent);
-    botKonus(cevap);
-  }
-
-  function temaDegistir() {
-    const stil = document.getElementById("tema-stil");
-    if (stil.innerHTML.includes("background: #121212")) {
-      stil.innerHTML = stil.innerHTML.replace("#121212", "#ffffff").replace("#eee", "#111");
-      document.querySelectorAll("button").forEach(btn => {
-        btn.style.backgroundColor = "#1976d2";
-        btn.style.color = "white";
-      });
-    } else {
-      stil.innerHTML = stil.innerHTML.replace("#ffffff", "#121212").replace("#111", "#eee");
-      document.querySelectorAll("button").forEach(btn => {
-        btn.style.backgroundColor = "#4caf50";
-        btn.style.color = "white";
-      });
-    }
-  }
-
-  window.onload = () => {
-    const gecmis = localStorage.getItem("konusmaLog");
-    if (gecmis) log.textContent = gecmis;
-  };
-</script>
-
-</body>
+function temaDegistir() {
+  const bg = document.body.style.background;
+  document.body.style.background = bg === 'white' ? '#111' : 'white';
+  document.body.style.color = bg === 'white' ? '#eee' : 'black';
+}
+</script></body>
 </html>
