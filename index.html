@@ -1,225 +1,326 @@
-<!DOCTYPE html><html lang="tr">
+<!DOCTYPE html>
+<html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <title>NovaTalk - WhatsApp Stili Arama</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
-  <style>
-    body {
-      background: #111;
-      color: #eee;
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-    }
-    button {
-      font-size: 16px;
-      margin: 10px;
-      padding: 10px 20px;
-      border-radius: 10px;
-      border: none;
-      background-color: #4caf50;
-      color: white;
-      cursor: pointer;
-    }
-    .end-call-btn {
-      background-color: #d32f2f;
-      position: fixed;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 12px 25px;
-      font-size: 16px;
-      border-radius: 40px;
-      display: none;
-      z-index: 1000;
-    }
-    video, canvas {
-      margin-top: 20px;
-      width: 300px;
-      border-radius: 12px;
-    }
-    #log {
-      background: #222;
-      padding: 10px;
-      margin-top: 20px;
-      border-radius: 10px;
-      max-width: 400px;
-      margin-left: auto;
-      margin-right: auto;
-      white-space: pre-wrap;
-    }
-    #guvenlik {
-      margin-top: 30px;
-      font-size: 14px;
-      color: #aaa;
-      border-top: 1px solid #444;
-      padding-top: 20px;
-      max-width: 400px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    #aramaEkrani {
-      display: none;
-      background: #1a1a1a;
-      color: white;
-      padding: 20px;
-      border-radius: 20px;
-      max-width: 300px;
-      margin: 40px auto;
-    }
-    #aramaEkrani img {
-      width: 100px;
-      border-radius: 50%;
-      margin-bottom: 10px;
-    }
-    .nokta {
-      animation: dot 1s infinite;
-    }
-    @keyframes dot {
-      0% { opacity: 0; }
-      50% { opacity: 1; }
-      100% { opacity: 0; }
-    }
-  </style>
+<meta charset="UTF-8" />
+<title>NovaTalk - Sesli & Görüntülü Arama</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  body {
+    background-color: #111;
+    color: #eee;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 20px;
+  }
+  button {
+    font-size: 16px;
+    margin: 10px;
+    padding: 12px 24px;
+    border-radius: 25px;
+    border: none;
+    cursor: pointer;
+    color: white;
+    user-select: none;
+  }
+  #btnSesli {
+    background-color: #4caf50;
+  }
+  #btnGoruntulu {
+    background-color: #2196f3;
+  }
+  #btnDurdur {
+    background-color: #d32f2f;
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 14px 30px;
+    font-size: 18px;
+    border-radius: 40px;
+    display: none;
+    z-index: 9999;
+  }
+  #aramaEkrani {
+    display: none;
+    background: #222;
+    color: white;
+    padding: 25px;
+    border-radius: 20px;
+    max-width: 320px;
+    margin: 40px auto;
+    box-shadow: 0 0 15px #000;
+  }
+  #aramaEkrani img {
+    width: 100px;
+    border-radius: 50%;
+    margin-bottom: 12px;
+  }
+  .nokta {
+    animation: dot 1s infinite;
+  }
+  @keyframes dot {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
+  }
+  video {
+    margin-top: 20px;
+    max-width: 320px;
+    border-radius: 12px;
+    display: none;
+  }
+  #log {
+    margin-top: 20px;
+    background: #222;
+    padding: 15px;
+    border-radius: 15px;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+    white-space: pre-wrap;
+    min-height: 100px;
+    font-size: 15px;
+  }
+  #guvenlik {
+    margin-top: 40px;
+    font-size: 14px;
+    color: #aaa;
+    border-top: 1px solid #444;
+    padding-top: 20px;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+</style>
 </head>
-<body><h1>NovaTalk 🤖</h1>
-<button onclick="temaDegistir()">🎨 Tema Değiştir</button>
-<button onclick="aramaBaslat('sesli')" id="btnSesli">📞 Sesli Ara</button>
-<button onclick="aramaBaslat('goruntulu')" id="btnGoruntulu">🎥 Görüntülü Ara</button><button class="end-call-btn" onclick="durdurArama()" id="btnDurdur">🟥 Aramayı Sonlandır</button>
+<body>
+
+<h1>NovaTalk 🤖</h1>
+
+<button id="btnSesli">📞 Sesli Ara</button>
+<button id="btnGoruntulu">🎥 Görüntülü Ara</button>
+<button id="btnDurdur">🟥 Aramayı Sonlandır</button>
 
 <div id="aramaEkrani">
-  <img src="https://cdn-icons-png.flaticon.com/512/4712/4712109.png" alt="ChatNova"/>
+  <img src="https://cdn-icons-png.flaticon.com/512/4712/4712109.png" alt="ChatNova" />
   <h2>ChatNova</h2>
   <p id="arananDurum">Aranıyor<span class="nokta">...</span></p>
-</div><video id="video" autoplay muted playsinline style="display:none;"></video> <canvas id="canvas"></canvas>
+</div>
+
+<video id="video" autoplay muted playsinline></video>
 
 <div id="log">📝 Konuşma logu buraya gelecek...</div>
+
 <div id="guvenlik">
   🔒 <strong>Güvenlik Bilgisi:</strong><br>
-  NovaTalk cihaz üzerinde çalışır. Ses ve görüntüler kaydedilmez veya gönderilmez.<br>
-  Kimse sizi izleyemez ya da dinleyemez. Tamamen gizlidir.
-</div><script>
-let recognition, model, ctx, videoStream, aramaAktif = false;
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-ctx = canvas.getContext('2d');
-const log = document.getElementById('log');
-const aramaEkrani = document.getElementById('aramaEkrani');
-const arananDurum = document.getElementById('arananDurum');
-const btnDurdur = document.getElementById('btnDurdur');
-const btnSesli = document.getElementById('btnSesli');
-const btnGoruntulu = document.getElementById('btnGoruntulu');
+  NovaTalk cihaz üzerinde çalışır.<br>
+  Ses ve görüntüler kaydedilmez veya gönderilmez.<br>
+  Kimse sizi izleyemez ya da dinleyemez.<br>
+  Tamamen gizlidir.
+</div>
 
-function botKonus(text) {
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = 'tr-TR';
-  speechSynthesis.speak(utter);
-}
+<script>
+  const btnSesli = document.getElementById('btnSesli');
+  const btnGoruntulu = document.getElementById('btnGoruntulu');
+  const btnDurdur = document.getElementById('btnDurdur');
+  const aramaEkrani = document.getElementById('aramaEkrani');
+  const arananDurum = document.getElementById('arananDurum');
+  const video = document.getElementById('video');
+  const log = document.getElementById('log');
 
-function logla(yazi) {
-  log.textContent += `\n${yazi}`;
-  log.scrollTop = log.scrollHeight;
-}
+  let recognition = null;
+  let videoStream = null;
+  let aramaAktif = false;
+  let botKonusuyor = false;
+  let sessizlikTimeout = null;
 
-function aramaBaslat(tip) {
-  if (aramaAktif) return;
-  aramaAktif = true;
-  aramaEkrani.style.display = 'block';
-  btnDurdur.style.display = 'block';
-  arananDurum.textContent = 'ChatNova aranıyor...';
-  btnSesli.disabled = true;
-  btnGoruntulu.disabled = true;
-
-  setTimeout(() => {
-    aramaEkrani.style.display = 'none';
-    if (tip === 'sesli') baslatSesli();
-    else if (tip === 'goruntulu') baslatGoruntu();
-  }, 3000);
-}
-
-function baslatSesli() {
-  navigator.mediaDevices.getUserMedia({ audio: true }).then(() => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognition = new SR();
-    recognition.lang = 'tr-TR';
-    recognition.continuous = true;
-
-    recognition.onresult = e => {
-      const text = e.results[e.results.length - 1][0].transcript;
-      logla('👤: ' + text);
-      botCevapla(text);
-    };
-    recognition.start();
-    botKonus('Selam! Ben ChatNova. Seni dinliyorum...');
-  }).catch(() => alert('Mikrofon izni gerek!'));
-}
-
-function durdurArama() {
-  if (recognition) recognition.stop();
-  if (videoStream) videoStream.getTracks().forEach(t => t.stop());
-  videoStream = null;
-  video.style.display = 'none';
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  aramaEkrani.style.display = 'none';
-  btnDurdur.style.display = 'none';
-  btnSesli.disabled = false;
-  btnGoruntulu.disabled = false;
-  aramaAktif = false;
-  botKonus('Arama sonlandırıldı.');
-}
-
-function botCevapla(text) {
-  let cevap = '';
-  const lower = text.toLowerCase();
-  if (lower.includes('merhaba')) cevap = 'Merhaba! Sana nasıl yardımcı olabilirim?';
-  else if (lower.includes('nasılsın')) cevap = 'İyiyim, sen nasılsın?';
-  else if (lower.includes('görüşürüz')) cevap = 'Görüşmek üzere!';
-  else cevap = 'Bunu tam anlayamadım, tekrar eder misin?';
-  botKonus(cevap);
-  logla('🤖 ChatNova: ' + cevap);
-}
-
-function baslatGoruntu() {
-  navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
-    video.srcObject = stream;
-    videoStream = stream;
-    video.style.display = 'block';
-    canvas.width = video.videoWidth || 300;
-    canvas.height = video.videoHeight || 300;
-    tf.loadGraphModel;
-    cocoSsd.load().then(m => {
-      model = m;
-      tanimayaBasla();
-    });
-  }).catch(() => alert('Kamera izni gerek!'));
-}
-
-function tanimayaBasla() {
-  function loop() {
-    if (!videoStream) return;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    model.detect(video).then(predictions => {
-      predictions.forEach(p => {
-        ctx.beginPath();
-        ctx.rect(...p.bbox);
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = '#00FF00';
-        ctx.fillStyle = '#00FF00';
-        ctx.stroke();
-        ctx.fillText(p.class, p.bbox[0], p.bbox[1] > 10 ? p.bbox[1] - 5 : 10);
-      });
-    });
-    requestAnimationFrame(loop);
+  // Botun sesli konuşması
+  function botKonus(text) {
+    if (botKonusuyor) {
+      speechSynthesis.cancel();
+    }
+    botKonusuyor = true;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'tr-TR';
+    utter.rate = 1;
+    utter.pitch = 1;
+    utter.onend = () => { botKonusuyor = false; };
+    speechSynthesis.speak(utter);
+    logaEkle('🤖 ChatNova: ' + text);
   }
-  loop();
-}
 
-function temaDegistir() {
-  const bg = document.body.style.background;
-  document.body.style.background = bg === 'white' ? '#111' : 'white';
-  document.body.style.color = bg === 'white' ? '#eee' : 'black';
-}
-</script></body>
+  // Log alanına yaz
+  function logaEkle(text) {
+    log.textContent += '\n' + text;
+    log.scrollTop = log.scrollHeight;
+  }
+
+  // Arama başlatma fonksiyonu
+  function aramaBaslat(tip) {
+    if (aramaAktif) return;
+    aramaAktif = true;
+    btnSesli.disabled = true;
+    btnGoruntulu.disabled = true;
+    btnDurdur.style.display = 'block';
+    aramaEkrani.style.display = 'block';
+    arananDurum.textContent = 'ChatNova aranıyor';
+    
+    setTimeout(() => {
+      aramaEkrani.style.display = 'none';
+      if (tip === 'sesli') baslatSesli();
+      else if (tip === 'goruntulu') baslatGoruntulu();
+    }, 3000);
+  }
+
+  // Sesli arama başlat
+  function baslatSesli() {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        video.style.display = 'none';
+        if (videoStream) {
+          videoStream.getTracks().forEach(t => t.stop());
+          videoStream = null;
+        }
+        if (recognition) recognition.stop();
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          alert('Tarayıcınız ses tanımayı desteklemiyor!');
+          aramaSonlandir();
+          return;
+        }
+        recognition = new SpeechRecognition();
+        recognition.lang = 'tr-TR';
+        recognition.continuous = true;
+        recognition.interimResults = false;
+
+        recognition.onresult = event => {
+          clearTimeout(sessizlikTimeout);
+          const last = event.results.length - 1;
+          const text = event.results[last][0].transcript.trim();
+          logaEkle('👤 Kullanıcı: ' + text);
+          botCevapla(text);
+          sessizlikTimeout = setTimeout(() => {
+            botKonus('Hadi dostum, konuşacak mısın?');
+          }, 5000);
+        };
+
+        recognition.onerror = event => {
+          logaEkle('⚠️ Ses tanıma hatası: ' + event.error);
+        };
+
+        recognition.onend = () => {
+          if (aramaAktif) {
+            recognition.start(); // devam etsin
+          }
+        };
+
+        recognition.start();
+        botKonus('Selam! Seni dinliyorum...');
+        sessizlikTimeout = setTimeout(() => {
+          botKonus('Hadi dostum, konuşacak mısın?');
+        }, 5000);
+      })
+      .catch(() => {
+        alert('Mikrofon izni gerekiyor!');
+        aramaSonlandir();
+      });
+  }
+
+  // Görüntülü arama başlat
+  function baslatGoruntulu() {
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      .then(stream => {
+        videoStream = stream;
+        video.srcObject = stream;
+        video.style.display = 'block';
+
+        if (recognition) recognition.stop();
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          alert('Tarayıcınız ses tanımayı desteklemiyor!');
+          aramaSonlandir();
+          return;
+        }
+
+        recognition = new SpeechRecognition();
+        recognition.lang = 'tr-TR';
+        recognition.continuous = true;
+        recognition.interimResults = false;
+
+        recognition.onresult = event => {
+          clearTimeout(sessizlikTimeout);
+          const last = event.results.length - 1;
+          const text = event.results[last][0].transcript.trim();
+          logaEkle('👤 Kullanıcı: ' + text);
+          botCevapla(text);
+          sessizlikTimeout = setTimeout(() => {
+            botKonus('Hadi dostum, konuşacak mısın?');
+          }, 5000);
+        };
+
+        recognition.onerror = event => {
+          logaEkle('⚠️ Ses tanıma hatası: ' + event.error);
+        };
+
+        recognition.onend = () => {
+          if (aramaAktif) {
+            recognition.start(); // devam etsin
+          }
+        };
+
+        recognition.start();
+        botKonus('Selam! Seni dinliyorum...');
+        sessizlikTimeout = setTimeout(() => {
+          botKonus('Hadi dostum, konuşacak mısın?');
+        }, 5000);
+      })
+      .catch(() => {
+        alert('Kamera ve mikrofon izni gerekiyor!');
+        aramaSonlandir();
+      });
+  }
+
+  // Bot cevapları
+  function botCevapla(text) {
+    const lower = text.toLowerCase();
+    if (lower.includes('merhaba')) botKonus('Merhaba! Sana nasıl yardımcı olabilirim?');
+    else if (lower.includes('nasılsın')) botKonus('İyiyim, teşekkür ederim! Sen nasılsın?');
+    else if (lower.includes('görüşürüz') || lower.includes('hoşçakal')) {
+      botKonus('Görüşmek üzere!');
+      aramaSonlandir();
+    }
+    else botKonus('Üzgünüm, bunu anlayamadım. Lütfen tekrar eder misin?');
+  }
+
+  // Aramayı durdur
+  function aramaSonlandir() {
+    aramaAktif = false;
+    btnSesli.disabled = false;
+    btnGoruntulu.disabled = false;
+    btnDurdur.style.display = 'none';
+    aramaEkrani.style.display = 'none';
+    if (recognition) {
+      recognition.onresult = null;
+      recognition.onerror = null;
+      recognition.onend = null;
+      recognition.stop();
+      recognition = null;
+    }
+    if (videoStream) {
+      videoStream.getTracks().forEach(t => t.stop());
+      videoStream = null;
+    }
+    video.style.display = 'none';
+    clearTimeout(sessizlikTimeout);
+    botKonus('Arama sonlandırıldı.');
+  }
+
+  // Eventler
+  btnSesli.onclick = () => aramaBaslat('sesli');
+  btnGoruntulu.onclick = () => aramaBaslat('goruntulu');
+  btnDurdur.onclick = aramaSonlandir;
+</script>
+
+</body>
 </html>
