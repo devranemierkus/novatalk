@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <title>NovaTalk - Sesli & Görüntülü Konuşma & İzin İste</title>
+  <title>NovaTalk - Sesli & Görüntülü Konuşma</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
@@ -28,18 +28,6 @@
       min-width: 180px;
       color: white;
       box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-    }
-    #btnMicPermission {
-      background: #007bff;
-    }
-    #btnMicPermission:hover {
-      background: #0056b3;
-    }
-    #btnCamPermission {
-      background: #17a2b8;
-    }
-    #btnCamPermission:hover {
-      background: #0f6674;
     }
     #btnVoice {
       background: #2196f3;
@@ -95,25 +83,16 @@
 
   <h1>NovaTalk 🤖</h1>
 
-  <!-- İzin Butonları -->
-  <button id="btnMicPermission">🎤 Mikrofon İzni Ver</button>
-  <button id="btnCamPermission">📷 Kamera İzni Ver</button>
-  
-  <br/>
-
-  <!-- Konuşma Butonları -->
   <button id="btnVoice" disabled>🎤 Sesli Konuşmayı Başlat</button>
   <button id="btnVideoStart" disabled>📹 Görüntülü Konuşmayı Başlat</button>
   <button id="btnVideoStop" disabled>⏹️ Görüntülü Konuşmayı Durdur</button>
 
   <video id="video" autoplay playsinline></video>
 
-  <div id="status">Durum: İzinler bekleniyor...</div>
+  <div id="status">Durum: İzinler isteniyor...</div>
   <div id="log">📝 Konuşma logu buraya gelecek...</div>
 
   <script>
-    const btnMicPermission = document.getElementById('btnMicPermission');
-    const btnCamPermission = document.getElementById('btnCamPermission');
     const btnVoice = document.getElementById('btnVoice');
     const btnVideoStart = document.getElementById('btnVideoStart');
     const btnVideoStop = document.getElementById('btnVideoStop');
@@ -121,185 +100,89 @@
     const status = document.getElementById('status');
     const log = document.getElementById('log');
 
-    let micPermissionGranted = false;
-    let camPermissionGranted = false;
-
     let recognition = null;
     let audioStream = null;
     let videoStream = null;
     let listening = false;
-
     let idleTimer = null;
     const idleTimeout = 5000; // 5 saniye boşta kalınca uyarı
+
+    // Sesli bot konuşma fonksiyonu - optimize ses
+    function botKonus(text) {
+      try {
+        if (speechSynthesis.speaking) speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'tr-TR';
+        utterance.pitch = 1.3;  // daha net ve doğal ses
+        utterance.rate = 0.95;  // biraz daha yavaş
+        utterance.volume = 1.0;
+
+        utterance.onerror = (e) => {
+          status.textContent = 'DURUM: Bot konuşma hatası oluştu.';
+          console.error('TTS Error:', e.error);
+        };
+
+        speechSynthesis.speak(utterance);
+      } catch (e) {
+        status.textContent = 'DURUM: Bot konuşma fonksiyonunda hata.';
+        console.error(e);
+      }
+    }
 
     function resetIdleTimer() {
       if (idleTimer) clearTimeout(idleTimer);
       idleTimer = setTimeout(() => {
-        botKonus('Konuş, bekliyorum dostum 😊');
-        log.textContent += '\n🤖 Bot: Konuş, bekliyorum dostum 😊';
+        botKonus('Hadi dostum, konuşacak mısın?');
+        log.textContent += '\n🤖 Bot: Hadi dostum, konuşacak mısın?';
         log.scrollTop = log.scrollHeight;
         resetIdleTimer();
       }, idleTimeout);
     }
 
-    function botKonus(text) {
-      try {
-        if (speechSynthesis.speaking) {
-          speechSynthesis.cancel();
-        }
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'tr-TR';
-        utterance.pitch = 1.1;
-        utterance.rate = 1;
-        utterance.onerror = (event) => {
-          status.textContent = 'DURUM: Bot konuşurken hata oluştu. Lütfen konsolu kontrol edin.';
-          console.error('SpeechSynthesisUtterance error:', event.error);
-        };
-        speechSynthesis.speak(utterance);
-      } catch (e) {
-        status.textContent = 'DURUM: Bot konuşma fonksiyonunda hata oluştu.';
-        console.error('botKonus error:', e);
-      }
-    }
-
-    // İzinleri kontrol ve buton aktif et
-    function checkEnableButtons() {
-      btnVoice.disabled = !micPermissionGranted;
-      btnVideoStart.disabled = !(micPermissionGranted && camPermissionGranted);
-    }
-
-    // Mikrofon izni isteme
-    btnMicPermission.onclick = () => {
-      navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(stream => {
-          micPermissionGranted = true;
-          audioStream = stream;
-          status.textContent = '✅ Mikrofon izni verildi.';
-          btnMicPermission.disabled = true;
-          btnMicPermission.textContent = '🎤 Mikrofon İzni Verildi';
-          checkEnableButtons();
-          // Mikrofon akışını kapatıyoruz, konuşma başlatınca açarız
-          stream.getTracks().forEach(track => track.stop());
-        })
-        .catch(err => {
-          status.textContent = '❌ Mikrofon izni reddedildi veya hata: ' + err.message;
-        });
-    };
-
-    // Kamera izni isteme
-    btnCamPermission.onclick = () => {
-      navigator.mediaDevices.getUserMedia({ video: true })
-        .then(stream => {
-          camPermissionGranted = true;
-          status.textContent = '✅ Kamera izni verildi.';
-          btnCamPermission.disabled = true;
-          btnCamPermission.textContent = '📷 Kamera İzni Verildi';
-          checkEnableButtons();
-          // Kamerayı kapatıyoruz, görüntülü konuşma başlatınca açarız
-          stream.getTracks().forEach(track => track.stop());
-        })
-        .catch(err => {
-          status.textContent = '❌ Kamera izni reddedildi veya hata: ' + err.message;
-        });
-    };
-
-    // Sesli konuşmayı başlat / durdur
-    btnVoice.onclick = () => {
-      if (listening) {
-        stopRecognition();
-        btnVoice.textContent = '🎤 Sesli Konuşmayı Başlat';
-        status.textContent = 'Durum: Sesli konuşma durduruldu.';
-        if (idleTimer) clearTimeout(idleTimer);
-        return;
-      }
+    // Konuşma başlat
+    function startRecognition() {
+      if (listening) return;
 
       navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(stream => {
-          audioStream = stream;
-          recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-          recognition.lang = 'tr-TR';
-          recognition.interimResults = false;
-          recognition.continuous = true;
+      .then(stream => {
+        audioStream = stream;
 
-          recognition.onresult = (event) => {
-            resetIdleTimer();
-            const speech = event.results[event.results.length -1][0].transcript.toLowerCase();
-            log.textContent += `\n👤 Sen: ${speech}`;
-            log.scrollTop = log.scrollHeight;
-            botCevapVer(speech);
-          };
+        recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'tr-TR';
+        recognition.continuous = true;
+        recognition.interimResults = false;
 
-          recognition.onerror = (event) => {
-            status.textContent = `⚠️ Ses tanıma hatası: ${event.error}`;
-          };
-
-          recognition.onend = () => {
-            if(listening) recognition.start();
-            else status.textContent = 'Durum: Sesli konuşma kapandı.';
-          };
-
-          recognition.start();
+        recognition.onresult = (event) => {
           resetIdleTimer();
-          listening = true;
-          btnVoice.textContent = '🛑 Sesli Konuşmayı Durdur';
-          status.textContent = 'Durum: Mikrofon aktif, seni dinliyorum...';
-          log.textContent = '📝 Konuşma logu başlatıldı.';
-        })
-        .catch(err => {
-          status.textContent = '❌ Mikrofon izni reddedildi veya hata: ' + err.message;
-        });
-    };
+          const speech = event.results[event.results.length -1][0].transcript.toLowerCase();
+          log.textContent += `\n👤 Sen: ${speech}`;
+          log.scrollTop = log.scrollHeight;
+          botCevapVer(speech);
+        };
 
-    // Görüntülü konuşmayı başlat
-    btnVideoStart.onclick = () => {
-      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        .then(stream => {
-          videoStream = stream;
-          video.srcObject = stream;
-          video.style.display = 'block';
+        recognition.onerror = (event) => {
+          status.textContent = `⚠️ Ses tanıma hatası: ${event.error}`;
+        };
 
-          btnVideoStart.disabled = true;
-          btnVideoStop.disabled = false;
+        recognition.onend = () => {
+          if (listening) recognition.start();
+          else status.textContent = 'Durum: Sesli konuşma kapandı.';
+        };
 
-          status.textContent = 'Durum: Kamera ve mikrofon açık, görüntülü konuşma başladı.';
-          log.textContent += '\n📹 Görüntülü konuşma başladı.';
-        })
-        .catch(err => {
-          status.textContent = '❌ Kamera veya mikrofon izni reddedildi: ' + err.message;
-        });
-    };
-
-    // Görüntülü konuşmayı durdur
-    btnVideoStop.onclick = () => {
-      if (videoStream) {
-        videoStream.getTracks().forEach(track => track.stop());
-        video.srcObject = null;
-        video.style.display = 'none';
-        btnVideoStart.disabled = false;
-        btnVideoStop.disabled = true;
-
-        status.textContent = 'Durum: Görüntülü konuşma durduruldu.';
-        log.textContent += '\n⏹️ Görüntülü konuşma durduruldu.';
-      }
-    };
-
-    // Botun basit cevap fonksiyonu
-    function botCevapVer(sozcuk) {
-      let cevap = '';
-      if (sozcuk.includes('nasılsın')) cevap = 'İyiyim, teşekkür ederim! Sen nasılsın? 😊';
-      else if (sozcuk.includes('merhaba')) cevap = 'Merhaba! Sana nasıl yardımcı olabilirim? 🤖';
-      else if (sozcuk.includes('görüşürüz')) {
-        cevap = 'Görüşmek üzere! İyi günler! 👋';
-        stopRecognition();
-      }
-      else cevap = 'Üzgünüm, bunu anlayamadım. Lütfen tekrar eder misin? 🤔';
-
-      log.textContent += `\n🤖 Bot: ${cevap}`;
-      log.scrollTop = log.scrollHeight;
-      botKonus(cevap);
+        recognition.start();
+        listening = true;
+        btnVoice.textContent = '🛑 Sesli Konuşmayı Durdur';
+        status.textContent = 'Durum: Selam! Seni dinliyorum... 🎧';
+        botKonus('Selam! Seni dinliyorum...');
+        resetIdleTimer();
+      })
+      .catch(err => {
+        status.textContent = '❌ Mikrofon izni reddedildi veya hata: ' + err.message;
+      });
     }
 
-    // Ses tanımayı durdur
+    // Konuşmayı durdur
     function stopRecognition() {
       listening = false;
       if (recognition) {
@@ -310,8 +193,94 @@
         audioStream.getTracks().forEach(track => track.stop());
         audioStream = null;
       }
-      status.textContent = 'Durum: Sesli konuşma kapandı.';
+      status.textContent = 'Durum: Sesli konuşma durduruldu.';
       if (idleTimer) clearTimeout(idleTimer);
+      btnVoice.textContent = '🎤 Sesli Konuşmayı Başlat';
+    }
+
+    // Basit bot cevabı
+    function botCevapVer(text) {
+      let cevap = '';
+      if (text.includes('nasılsın')) cevap = 'İyiyim, teşekkür ederim! Sen nasılsın?';
+      else if (text.includes('merhaba')) cevap = 'Merhaba! Sana nasıl yardımcı olabilirim?';
+      else if (text.includes('görüşürüz')) {
+        cevap = 'Görüşmek üzere! İyi günler!';
+        stopRecognition();
+      }
+      else cevap = 'Üzgünüm, bunu anlayamadım. Lütfen tekrar eder misin?';
+
+      log.textContent += `\n🤖 Bot: ${cevap}`;
+      log.scrollTop = log.scrollHeight;
+      botKonus(cevap);
+    }
+
+    // Görüntülü konuşma başlat
+    function startVideo() {
+      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      .then(stream => {
+        videoStream = stream;
+        video.srcObject = stream;
+        video.style.display = 'block';
+
+        btnVideoStart.disabled = true;
+        btnVideoStop.disabled = false;
+
+        status.textContent = 'Durum: Görüntülü konuşma başladı.';
+        log.textContent += '\n📹 Görüntülü konuşma başladı.';
+      })
+      .catch(err => {
+        status.textContent = '❌ Kamera veya mikrofon izni reddedildi: ' + err.message;
+      });
+    }
+
+    // Görüntülü konuşmayı durdur
+    function stopVideo() {
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+        video.style.display = 'none';
+
+        btnVideoStart.disabled = false;
+        btnVideoStop.disabled = true;
+
+        status.textContent = 'Durum: Görüntülü konuşma durduruldu.';
+        log.textContent += '\n⏹️ Görüntülü konuşma durduruldu.';
+      }
+    }
+
+    // Sayfa yüklendiğinde izinleri otomatik iste
+    async function izinIste() {
+      status.textContent = 'Durum: İzinler isteniyor...';
+
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        btnVoice.disabled = false;
+        status.textContent = '✅ Mikrofon izni verildi. Sesli konuşmayı başlatabilirsin.';
+      } catch {
+        status.textContent = '❌ Mikrofon izni reddedildi.';
+      }
+
+      try {
+        await navigator.mediaDevices.getUserMedia({ video: true });
+        btnVideoStart.disabled = false;
+        status.textContent += ' ✅ Kamera izni verildi. Görüntülü konuşmayı başlatabilirsin.';
+      } catch {
+        status.textContent += ' ❌ Kamera izni reddedildi.';
+      }
+    }
+
+    btnVoice.onclick = () => {
+      if (listening) stopRecognition();
+      else startRecognition();
+    };
+
+    btnVideoStart.onclick = () => startVideo();
+    btnVideoStop.onclick = () => stopVideo();
+
+    // Sayfa açılır açılmaz izin iste ve butonları aktif et
+    window.onload = () => {
+      izinIste();
+      btnVideoStop.disabled = true;
     }
   </script>
 
