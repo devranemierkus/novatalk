@@ -1,294 +1,209 @@
-<!DOCTYPE html>
-<html lang="tr">
+<!DOCTYPE html><html lang="tr">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>NovaTalk - WhatsApp Tarzı Sesli Arama</title>
-<style>
-  body {
-    margin:0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #ece5dd;
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    user-select:none;
-  }
-  header {
-    background: #075e54;
-    color: white;
-    padding: 15px;
-    font-size: 24px;
-    font-weight: 700;
-    text-align: center;
-  }
-  #callScreen {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    background: #128c7e;
-    color: white;
-    font-size: 22px;
-    position: relative;
-  }
-  .spinner {
-    border: 6px solid rgba(255,255,255,0.3);
-    border-top: 6px solid white;
-    border-radius: 50%;
-    width: 70px;
-    height: 70px;
-    animation: spin 1s linear infinite;
-    margin-bottom: 15px;
-  }
-  @keyframes spin {
-    0% {transform: rotate(0deg);}
-    100% {transform: rotate(360deg);}
-  }
-  #log {
-    background: white;
-    color: #222;
-    font-size: 16px;
-    padding: 10px;
-    height: 180px;
-    overflow-y: auto;
-    border-top: 1px solid #ccc;
-    white-space: pre-wrap;
-  }
-  footer {
-    display: flex;
-    justify-content: space-around;
-    padding: 15px;
-    background: #f7f7f7;
-    border-top: 1px solid #ddd;
-  }
-  button {
-    flex: 1;
-    margin: 0 10px;
-    padding: 14px 0;
-    font-size: 18px;
-    font-weight: 600;
-    border-radius: 30px;
-    border: none;
-    cursor: pointer;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
-    user-select:none;
-    transition: background-color 0.3s ease;
-  }
-  #btnAudioStart {
-    background-color: #25d366;
-    color: white;
-  }
-  #btnAudioStart:hover {
-    background-color: #128c4a;
-  }
-  #btnCallEnd {
-    background-color: #dc3545;
-    color: white;
-    display: none;
-  }
-  #btnCallEnd:hover {
-    background-color: #a52734;
-  }
-  #statusMsg {
-    position: absolute;
-    bottom: 20px;
-    font-size: 16px;
-    opacity: 0.9;
-  }
-  #securityNote {
-    font-size: 12px;
-    color: #666;
-    margin: 5px 10px;
-    text-align: center;
-    font-style: italic;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NovaTalk - Görüntülü & Sesli Sohbet</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #ece5dd;
+    }
+    header {
+      background: #075e54;
+      color: white;
+      padding: 16px;
+      text-align: center;
+      font-size: 24px;
+    }
+    #callScreen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 80vh;
+      background: #128c7e;
+      color: white;
+      text-align: center;
+    }
+    #spinner {
+      border: 6px solid rgba(255,255,255,0.3);
+      border-top: 6px solid white;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    #video {
+      width: 90%;
+      max-width: 400px;
+      margin-top: 20px;
+      display: none;
+      border-radius: 12px;
+    }
+    #log {
+      background: white;
+      margin: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      min-height: 100px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      color: black;
+    }
+    footer {
+      display: flex;
+      justify-content: space-around;
+      padding: 15px;
+      background: #f0f0f0;
+    }
+    button {
+      padding: 12px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+    }
+    #startAudioBtn {
+      background: #25d366;
+      color: white;
+    }
+    #startVideoBtn {
+      background: #34b7f1;
+      color: white;
+    }
+    #endCallBtn {
+      background: #dc3545;
+      color: white;
+      display: none;
+    }
+    #statusMsg {
+      margin-top: 20px;
+      font-size: 16px;
+    }
+    .footer-note {
+      text-align: center;
+      font-size: 13px;
+      padding: 10px;
+      color: #555;
+    }
+  </style>
 </head>
 <body>
+  <header>NovaTalk</header>  <div id="callScreen">
+    <div id="spinner"></div>
+    <div id="status">ChatNova aranıyor...</div>
+    <video id="video" autoplay playsinline muted></video>
+    <div id="statusMsg"></div>
+  </div>  <div id="log">📝 Konuşmalar buraya yazılacak...</div>  <footer>
+    <button id="startAudioBtn">🎤 Sesli Arama</button>
+    <button id="startVideoBtn">📹 Görüntülü Arama</button>
+    <button id="endCallBtn">🔴 Aramayı Bitir</button>
+  </footer>  <div class="footer-note">
+    📢 Güvenlik: NovaTalk asla konuşmalarınızı kaydetmez veya paylaşmaz. Mikrofon ve kamera yalnızca sizin izninizle çalışır.
+  </div>  <script>
+    const status = document.getElementById('status');
+    const statusMsg = document.getElementById('statusMsg');
+    const log = document.getElementById('log');
+    const spinner = document.getElementById('spinner');
+    const video = document.getElementById('video');
+    const startAudioBtn = document.getElementById('startAudioBtn');
+    const startVideoBtn = document.getElementById('startVideoBtn');
+    const endCallBtn = document.getElementById('endCallBtn');
 
-<header>NovaTalk</header>
+    let recognition, inactivityTimer;
+    let callActive = false;
+    let audioStream, videoStream;
 
-<div id="callScreen">
-  <div id="spinner" class="spinner" style="display:none;"></div>
-  <div id="callStatusText"></div>
-  <div id="statusMsg"></div>
-</div>
-
-<div id="log">📝 Konuşma logları burada gösterilecek...</div>
-
-<footer>
-  <button id="btnAudioStart">🎤 Sesli Arama Başlat</button>
-  <button id="btnCallEnd">🛑 Aramayı Bitir</button>
-</footer>
-
-<div id="securityNote">🔒 Gizliliğiniz bizim önceliğimizdir. Mikrofon izni sadece bu uygulama için kullanılır, kimse sizi izlemez veya dinlemez.</div>
-
-<script>
-  const btnAudioStart = document.getElementById('btnAudioStart');
-  const btnCallEnd = document.getElementById('btnCallEnd');
-  const spinner = document.getElementById('spinner');
-  const callStatusText = document.getElementById('callStatusText');
-  const statusMsg = document.getElementById('statusMsg');
-  const log = document.getElementById('log');
-
-  let recognition = null;
-  let recognizing = false;
-  let inactivityTimer = null;
-  let callActive = false;
-  let speechQueue = [];
-  let isSpeaking = false;
-
-  // Sesli okuma kuyruğu yönetimi
-  function speak(text) {
-    if (speechSynthesis.speaking) {
-      speechQueue.push(text);
-      return;
-    }
-    isSpeaking = true;
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'tr-TR';
-    utterance.pitch = 1.1;
-    utterance.rate = 1;
-    utterance.onstart = () => {
-      // Bot konuşmaya başlarken mikrofondan dinlemeyi durdur
-      if (recognition && recognizing) {
-        recognition.stop();
-      }
-    };
-    utterance.onend = () => {
-      isSpeaking = false;
-      if (callActive && !recognizing) {
-        recognition.start();
-      }
-      if (speechQueue.length > 0) {
-        const nextText = speechQueue.shift();
-        speak(nextText);
-      }
-    };
-    speechSynthesis.speak(utterance);
-  }
-
-  function logMesaj(msg) {
-    if (log.textContent.includes(msg)) return; // Aynı mesaj üst üste olmasın
-    log.textContent += '\n' + msg;
-    log.scrollTop = log.scrollHeight;
-  }
-
-  function resetInactivityTimer() {
-    clearTimeout(inactivityTimer);
-    inactivityTimer = setTimeout(() => {
-      speak('Hadi dostum, konuşacak mısın?');
-      resetInactivityTimer();
-    }, 8000);
-  }
-
-  function baslatKonusma() {
-    if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
-      alert('Tarayıcınız ses tanımayı desteklemiyor!');
-      return;
+    function speak(text) {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'tr-TR';
+      speechSynthesis.speak(utter);
     }
 
-    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = 'tr-TR';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+    function logMessage(text) {
+      log.textContent += `\n${text}`;
+      log.scrollTop = log.scrollHeight;
+    }
 
-    recognition.onstart = () => {
-      recognizing = true;
-      statusMsg.textContent = 'Dinleniyor... Konuşabilirsiniz.';
-      logMesaj('🎙️ Ses tanıma başlatıldı.');
-      resetInactivityTimer();
-      speak('Seni dinliyorum...');
-    };
-
-    recognition.onerror = (event) => {
-      statusMsg.textContent = 'Ses tanıma hatası: ' + event.error;
-      if (event.error === 'not-allowed' || event.error === 'permission-denied') {
-        alert('Mikrofon izni reddedildi veya erişilemiyor.');
-        bitirKonusma();
-      }
-    };
-
-    recognition.onend = () => {
-      recognizing = false;
-      statusMsg.textContent = 'Ses tanıma durdu.';
+    function endCall() {
+      callActive = false;
       clearTimeout(inactivityTimer);
-      if (callActive && !isSpeaking) {
-        recognition.start();
-      }
-    };
-
-    recognition.onresult = (event) => {
-      const speech = event.results[0][0].transcript.trim();
-      logMesaj('👤 Sen: ' + speech);
-      resetInactivityTimer();
-      botCevapVer(speech);
-    };
-
-    recognition.start();
-  }
-
-  // Bot cevabı (daha gelişmiş API ile değiştirilebilir)
-  function botCevapVer(kullaniciSoz) {
-    const soz = kullaniciSoz.toLowerCase();
-
-    if (soz.includes('nasılsın')) {
-      botKonus('İyiyim, teşekkür ederim! Sen nasılsın?');
-    } else if (soz.includes('merhaba')) {
-      botKonus('Merhaba! Sana nasıl yardımcı olabilirim?');
-    } else if (soz.includes('görüşürüz') || soz.includes('hoşçakal')) {
-      botKonus('Görüşmek üzere! İyi günler!');
-      bitirKonusma();
-    } else if (soz.trim() === '') {
-      botKonus('Lütfen bir şeyler söyle.');
-    } else {
-      botKonus('Üzgünüm, bunu anlayamadım. Lütfen tekrar eder misin?');
-    }
-  }
-
-  function botKonus(text) {
-    logMesaj('🤖 ChatNova: ' + text);
-    speak(text);
-  }
-
-  function bitirKonusma() {
-    if (recognition && recognizing) {
-      recognition.stop();
-      recognizing = false;
-    }
-    statusMsg.textContent = 'Konuşma sonlandırıldı.';
-    callActive = false;
-    btnCallEnd.style.display = 'none';
-    btnAudioStart.style.display = 'inline-block';
-    spinner.style.display = 'none';
-    callStatusText.textContent = '';
-  }
-
-  function aramaBaslat() {
-    callActive = true;
-    btnAudioStart.style.display = 'none';
-    btnCallEnd.style.display = 'inline-block';
-
-    spinner.style.display = 'block';
-    callStatusText.textContent = 'ChatNova aranıyor...';
-
-    setTimeout(() => {
+      if (recognition) recognition.stop();
+      if (audioStream) audioStream.getTracks().forEach(t => t.stop());
+      if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+      video.style.display = 'none';
+      status.textContent = 'Görüşme sonlandırıldı.';
       spinner.style.display = 'none';
-      callStatusText.textContent = 'ALO!';
-      speak('Alo!');
-      baslatKonusma();
-    }, 4000);
-  }
+      startAudioBtn.style.display = 'inline-block';
+      startVideoBtn.style.display = 'inline-block';
+      endCallBtn.style.display = 'none';
+    }
 
-  btnAudioStart.onclick = () => {
-    aramaBaslat();
-  };
+    function startSpeechRecognition() {
+      recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'tr-TR';
+      recognition.onstart = () => {
+        statusMsg.textContent = '🎤 Dinleniyor...';
+        speak('Selam! Seni dinliyorum.');
+      };
+      recognition.onresult = (e) => {
+        const text = e.results[0][0].transcript;
+        logMessage('👤 Sen: ' + text);
+        speak('ChatNova: ' + text);
+        resetInactivity();
+      };
+      recognition.onend = () => {
+        if (callActive) recognition.start();
+      };
+      recognition.start();
+      resetInactivity();
+    }
 
-  btnCallEnd.onclick = () => {
-    bitirKonusma();
-  };
-</script>
+    function resetInactivity() {
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => {
+        speak('Dostum, konuşmuyorsun. Kapatmak zorundayım.');
+        endCall();
+      }, 15000);
+    }
 
-</body>
+    function startCall(audio = true, withVideo = false) {
+      callActive = true;
+      spinner.style.display = 'block';
+      status.textContent = 'ChatNova aranıyor...';
+      startAudioBtn.style.display = 'none';
+      startVideoBtn.style.display = 'none';
+      endCallBtn.style.display = 'inline-block';
+
+      setTimeout(() => {
+        spinner.style.display = 'none';
+        status.textContent = 'Görüşme başladı';
+
+        const mediaOpts = withVideo ? { video: true, audio: true } : { audio: true };
+        navigator.mediaDevices.getUserMedia(mediaOpts)
+          .then(stream => {
+            audioStream = stream;
+            if (withVideo) {
+              videoStream = stream;
+              video.srcObject = stream;
+              video.style.display = 'block';
+            }
+            startSpeechRecognition();
+          })
+          .catch(err => {
+            status.textContent = 'İzin alınamadı: ' + err.message;
+          });
+      }, 4000);
+    }
+
+    startAudioBtn.onclick = () => startCall(true, false);
+    startVideoBtn.onclick = () => startCall(true, true);
+    endCallBtn.onclick = endCall;
+  </script></body>
 </html>
