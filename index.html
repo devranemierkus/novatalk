@@ -124,6 +124,7 @@
   let isListening = false;
   let inactivityTimeout = null;
   let isSpeaking = false;
+  let micStream = null;
 
   // Ağız animasyonu aç/kapa
   function animateMouth(open) {
@@ -177,12 +178,27 @@
     speak(response);
   }
 
-  // Medya izni alma
-  async function getMedia(video = false) {
+  // Medya izni alma (ses için)
+  async function getAudioStream() {
+    if(micStream) return micStream;
     try {
-      return await navigator.mediaDevices.getUserMedia(video ? {audio:true, video: {width:320, height:240}} : {audio:true});
+      micStream = await navigator.mediaDevices.getUserMedia({audio:true});
+      return micStream;
     } catch(e) {
-      alert('Mikrofon ve/veya kamera izni reddedildi veya desteklenmiyor.');
+      alert('Mikrofon izni reddedildi veya desteklenmiyor.');
+      endCall();
+      throw e;
+    }
+  }
+
+  // Kamera ve mikrofon streamini al
+  async function getVideoStream() {
+    if(videoStream) return videoStream;
+    try {
+      videoStream = await navigator.mediaDevices.getUserMedia({video:{width:320, height:240}, audio:false});
+      return videoStream;
+    } catch(e) {
+      alert('Kamera izni reddedildi veya desteklenmiyor.');
       endCall();
       throw e;
     }
@@ -192,13 +208,12 @@
   function startRecognition() {
     if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
       alert('Tarayıcınız ses tanımayı desteklemiyor.');
-      endCall();
       return;
     }
     recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.lang = 'tr-TR';
     recognition.interimResults = false;
-    recognition.continuous = false; // Basılı tutanda dinle
+    recognition.continuous = false; // Tek seferlik dinle
     recognition.onstart = () => {
       status.textContent = '🎧 Dinleniyor...';
       isListening = true;
@@ -207,11 +222,9 @@
       talkButton.textContent = '🎙 Konuşuyor... Bırak durdur';
     };
     recognition.onresult = (event) => {
-      clearTimeout(inactivityTimeout);
       const transcript = event.results[0][0].transcript.trim();
       logMessage('👤 Sen: ' + transcript);
       botReply(transcript);
-      resetInactivityTimer();
     };
     recognition.onerror = (event) => {
       if(event.error === 'not-allowed' || event.error === 'service-not-allowed') {
@@ -223,8 +236,8 @@
       isListening = false;
       talkButton.classList.remove('active');
       talkButton.setAttribute('aria-pressed', 'false');
-      talkButton.textContent = '🎙 Bas & Konuş';
-      status.textContent = 'Arama açık, konuşmak için butona basılı tut';
+      talkButton.textContent = '🎙 Basılı tut konuş';
+      status.textContent = 'Arama açık, basılı tut konuş.';
     };
     recognition.start();
   }
@@ -233,35 +246,66 @@
   function stopRecognition() {
     if(recognition){
       recognition.stop();
+      recognition = null;
       isListening = false;
-      talkButton.classList.remove('active');
-      talkButton.setAttribute('aria-pressed', 'false');
-      talkButton.textContent = '🎙 Bas & Konuş';
-      status.textContent = 'Arama açık, konuşmak için butona basılı tut';
     }
   }
 
-  // Basılı tut olayları
-  talkButton.addEventListener('mousedown', startRecognition);
-  talkButton.addEventListener('touchstart', e => { e.preventDefault(); startRecognition(); });
-  talkButton.addEventListener('mouseup', stopRecognition);
-  talkButton.addEventListener('touchend', stopRecognition);
+  // Basılı tut olayı - konuşma için mikrofon aç/kapa
+  talkButton.addEventListener('mousedown', async () => {
+    if(!isCalling) return;
+    try {
+      await getAudioStream();
+      startRecognition();
+    } catch {}
+  });
+  talkButton.addEventListener('touchstart', async e => {
+    e.preventDefault();
+    if(!isCalling) return;
+    try {
+      await getAudioStream();
+      startRecognition();
+    } catch {}
+  });
 
-  // Boşta kalınca kapatma timer
-  function resetInactivityTimer() {
-    clearTimeout(inactivityTimeout);
-    inactivityTimeout = setTimeout(() => {
-      speak('Dostum, konuşmuyorsun. Kapatmak zorundayım.');
-      endCall();
-    }, 30000);
-  }
+  talkButton.addEventListener('mouseup', () => {
+    stopRecognition();
+  });
+  talkButton.addEventListener('touchend', () => {
+    stopRecognition();
+  });
 
-  // Arama başlatma
-  async function startCall(video = false) {
+  // Arama başlatma - sesli
+  btnAudioCall.addEventListener('click', async () => {
     if(isCalling) return;
     isCalling = true;
-    isVideo = video;
-    status.textContent = 'ChatNova aranıyor...';
+    isVideo = false;
+
+    status.textContent = 'Sesli arama başlatılıyor...';
+    btnAudioCall.disabled = true;
+    btnVideoCall.disabled = true;
+    talkButton.style.display = 'inline-block';
+    btnEndCall.style.display = 'inline-block';
+    botAvatar.style.display = 'block';
+    localVideo.style.display = 'none';
+
+    try {
+      audioStream = await getAudioStream();
+      // Mikrofonu kapalı tutuyoruz, sadece basılı tutunca açılıyor
+      status.textContent = 'Sesli arama başladı. Basılı tut konuş.';
+      logMessage('✅ Sesli arama başladı.');
+    } catch(e) {
+      endCall();
+    }
+  });
+
+  // Arama başlatma - görüntülü
+  btnVideoCall.addEventListener('click', async () => {
+    if(isCalling) return;
+    isCalling = true;
+    isVideo = true;
+
+    status.textContent = 'Görüntülü arama başlatılıyor...';
     btnAudioCall.disabled = true;
     btnVideoCall.disabled = true;
     talkButton.style.display = 'inline-block';
@@ -269,29 +313,27 @@
     botAvatar.style.display = 'block';
 
     try {
-      const stream = await getMedia(video);
-      if(video){
-        videoStream = stream;
-        localVideo.srcObject = stream;
-        localVideo.style.display = 'block';
-      } else {
-        audioStream = stream;
-        localVideo.style.display = 'none';
-      }
-      status.textContent = (video ? 'Görüntülü' : 'Sesli') + ' arama başladı. Basılı tut konuş.';
-      resetInactivityTimer();
+      videoStream = await getVideoStream();
+      localVideo.srcObject = videoStream;
+      localVideo.style.display = 'block';
+      status.textContent = 'Görüntülü arama başladı. Basılı tut konuş.';
+      logMessage('✅ Görüntülü arama başladı.');
     } catch(e) {
       endCall();
     }
-  }
+  });
 
   // Aramayı bitir
+  btnEndCall.addEventListener('click', () => {
+    endCall();
+  });
+
   function endCall() {
     if(!isCalling) return;
     isCalling = false;
     isVideo = false;
 
-    // Medya streamlerini durdur
+    // Durdur streamler
     if(audioStream){
       audioStream.getTracks().forEach(t => t.stop());
       audioStream = null;
@@ -300,13 +342,14 @@
       videoStream.getTracks().forEach(t => t.stop());
       videoStream = null;
     }
-    localVideo.style.display = 'none';
-    localVideo.srcObject = null;
 
     if(recognition){
       recognition.abort();
       recognition = null;
     }
+
+    localVideo.style.display = 'none';
+    localVideo.srcObject = null;
     talkButton.style.display = 'none';
     btnEndCall.style.display = 'none';
     btnAudioCall.disabled = false;
@@ -314,13 +357,7 @@
     botAvatar.style.display = 'none';
     status.textContent = 'Arama sonlandı. Yeni arama başlatabilirsiniz.';
     logMessage('❌ Arama kapatıldı.');
-    clearTimeout(inactivityTimeout);
   }
-
-  // Butonlara tıklama
-  btnAudioCall.addEventListener('click', () => startCall(false));
-  btnVideoCall.addEventListener('click', () => startCall(true));
-  btnEndCall.addEventListener('click', endCall);
 
 </script>
 
