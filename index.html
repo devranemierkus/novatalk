@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>NovaTalk</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 40px 20px;
+      background: #f0f0f0;
+    }
+    button {
+      font-size: 22px;
+      padding: 15px 40px;
+      margin: 20px auto;
+      display: block;
+      max-width: 320px;
+      width: 90%;
+      border-radius: 12px;
+      border: none;
+      background-color: #4caf50;
+      color: white;
+      cursor: pointer;
+      user-select: none;
+    }
+    video {
+      margin-top: 30px;
+      width: 90%;
+      max-width: 360px;
+      border-radius: 12px;
+      display: none;
+    }
+    #status {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #222;
+      min-height: 1.5em;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>NovaTalk</h1>
+  <button id="startBtn">📷 Kamera & 🎤 Mikrofon Aç + Botu Dinle</button>
+  <video id="video" autoplay playsinline></video>
+  <div id="status"></div>
+
+  <script>
+    const btn = document.getElementById("startBtn");
+    const video = document.getElementById("video");
+    const status = document.getElementById("status");
+
+    function botKonus(text) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "tr-TR";
+      speechSynthesis.speak(utterance);
+    }
+
+    btn.addEventListener("click", () => {
+      status.textContent = "İzin isteniyor...";
+      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then(stream => {
+          status.textContent = "Kamera ve mikrofon aktif.";
+          video.srcObject = stream;
+          video.style.display = "block";
+          btn.style.display = "none";
+          botKonus("Merhaba! NovaTalk botuna hoş geldin. Sana nasıl yardımcı olabilirim?");
+        })
+        .catch(err => {
+          status.textContent = "İzin reddedildi veya hata oluştu: " + err.message;
+        });
+    });
+  </script>
+
+</body>
+</html>
