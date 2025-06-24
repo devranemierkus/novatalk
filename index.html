@@ -66,7 +66,6 @@
   #btnCallEnd:hover {
     background-color: #a52734;
   }
-  /* Güvenlik uyarısı */
   #securityNote {
     font-size: 12px;
     color: #666;
@@ -102,9 +101,9 @@
   let recognition = null;
   let recognizing = false;
   let inactivityTimer = null;
+  let callStatusTimeout = null;
+  let callActive = false;
 
-  // Kullanıcı konuşmasını log'a yazar ama sesini tekrar etmez
-  // Bot cevapları hem log'a yazılır hem sesli okunur
   function botKonus(text) {
     if (speechSynthesis.speaking) speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
@@ -155,14 +154,8 @@
     recognition.onresult = (event) => {
       const speech = event.results[0][0].transcript.trim();
       logMesaj('👤 Sen: ' + speech);
-
-      // Kullanıcı konuştuğu için süreyi sıfırla
       resetInactivityTimer();
-
-      // Bot cevabını oluştur ve konuş
       botCevapVer(speech);
-
-      // Yeniden dinlemeye devam et
       if (recognizing) recognition.start();
     };
 
@@ -180,7 +173,6 @@
   function botCevapVer(kullaniciSoz) {
     const soz = kullaniciSoz.toLowerCase();
 
-    // Basit anahtar kelimelerle cevaplar (İstersen burada API ile genişlet)
     if (soz.includes('nasılsın')) {
       botKonus('İyiyim, teşekkür ederim! Sen nasılsın?');
     } else if (soz.includes('merhaba')) {
@@ -191,7 +183,6 @@
     } else if (soz.trim() === '') {
       botKonus('Lütfen bir şeyler söyle.');
     } else {
-      // Anlamadığı şeylerde
       botKonus('Üzgünüm, bunu anlayamadım. Lütfen tekrar eder misin?');
     }
   }
@@ -207,12 +198,22 @@
     btnAudioStart.style.display = 'inline-block';
     btnVideoStart.style.display = 'inline-block';
     clearTimeout(inactivityTimer);
-    logMesaj('🔴 Arama sonlandırıldı.');
+    callActive = false;
+  }
+
+  function gosterCallStatus(mesaj) {
+    callStatus.textContent = mesaj;
+    callStatus.style.display = 'block';
+    clearTimeout(callStatusTimeout);
+    callStatusTimeout = setTimeout(() => {
+      callStatus.style.display = 'none';
+    }, 4000);
   }
 
   btnAudioStart.onclick = () => {
-    callStatus.textContent = 'ChatNova aranıyor (Sesli)...';
-    callStatus.style.display = 'block';
+    if (callActive) return; // Spam engelle
+    callActive = true;
+    gosterCallStatus('ChatNova aranıyor (Sesli)...');
     btnAudioStart.style.display = 'none';
     btnVideoStart.style.display = 'none';
     btnCallEnd.style.display = 'inline-block';
@@ -221,22 +222,23 @@
   };
 
   btnVideoStart.onclick = () => {
-    // Görüntülü arama için kamera ve mikrofon izni iste
+    if (callActive) return; // Spam engelle
     navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
-      // stream kullanarak video gösterimi veya başka işlem yapılabilir
-      callStatus.textContent = 'ChatNova aranıyor (Görüntülü)...';
-      callStatus.style.display = 'block';
+      callActive = true;
+      gosterCallStatus('ChatNova aranıyor (Görüntülü)...');
       btnAudioStart.style.display = 'none';
       btnVideoStart.style.display = 'none';
       btnCallEnd.style.display = 'inline-block';
       logMesaj('🟢 Görüntülü arama başlatıldı.');
       baslatKonusma();
+      // Not: İstersen burada video element ekleyip stream gösterilebilir
     }).catch(err => {
       alert('Kamera ve mikrofon izni gerekli: ' + err.message);
     });
   };
 
   btnCallEnd.onclick = () => {
+    if (!callActive) return; // Spam engelle
     bitirKonusma();
   };
 </script>
