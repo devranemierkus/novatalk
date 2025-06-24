@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <title>NovaTalk</title>
+  <title>NovaTalk - Sesli & Görüntülü Konuşma</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
@@ -12,18 +12,20 @@
       background: #f0f0f0;
     }
     button {
-      font-size: 22px;
-      padding: 15px 40px;
-      margin: 20px auto;
-      display: block;
-      max-width: 320px;
-      width: 90%;
+      font-size: 20px;
+      padding: 15px 30px;
+      margin: 10px 15px;
       border-radius: 12px;
       border: none;
-      background-color: #4caf50;
-      color: white;
       cursor: pointer;
       user-select: none;
+      color: white;
+      background-color: #4caf50;
+      min-width: 140px;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #45a049;
     }
     video {
       margin-top: 30px;
@@ -38,40 +40,175 @@
       color: #222;
       min-height: 1.5em;
     }
+    #log {
+      margin-top: 20px;
+      font-size: 16px;
+      color: #333;
+      white-space: pre-wrap;
+      max-width: 360px;
+      margin-left: auto;
+      margin-right: auto;
+      background: #e0e0e0;
+      padding: 10px;
+      border-radius: 8px;
+      min-height: 80px;
+    }
   </style>
 </head>
 <body>
 
   <h1>NovaTalk</h1>
-  <button id="startBtn">📷 Kamera & 🎤 Mikrofon Aç + Botu Dinle</button>
+
+  <button id="btnAudio">🎤 Sesli Konuşma Başlat</button>
+  <button id="btnVideo">📷 Görüntülü Konuşma Başlat</button>
+
   <video id="video" autoplay playsinline></video>
   <div id="status"></div>
+  <div id="log">Konuşma logu buraya gelecek...</div>
 
   <script>
-    const btn = document.getElementById("startBtn");
-    const video = document.getElementById("video");
-    const status = document.getElementById("status");
+    const btnAudio = document.getElementById('btnAudio');
+    const btnVideo = document.getElementById('btnVideo');
+    const video = document.getElementById('video');
+    const status = document.getElementById('status');
+    const log = document.getElementById('log');
 
+    let audioStream = null;
+    let videoStream = null;
+    let recognition = null;
+
+    // TTS fonksiyonu (ses kalitesi için pitch ve rate ayarları)
     function botKonus(text) {
+      if (speechSynthesis.speaking) {
+        speechSynthesis.cancel(); // Önceki konuşmayı iptal et
+      }
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = "tr-TR";
+      utterance.lang = 'tr-TR';
+      utterance.pitch = 1.1; // Ses tonu (1 normal)
+      utterance.rate = 1;    // Konuşma hızı
       speechSynthesis.speak(utterance);
     }
 
-    btn.addEventListener("click", () => {
-      status.textContent = "İzin isteniyor...";
+    // Sesli konuşma başlatma (mikrofon)
+    btnAudio.onclick = () => {
+      status.textContent = 'Mikrofon izni isteniyor...';
+      navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        audioStream = stream;
+        status.textContent = 'Mikrofon aktif. Konuş, seni dinliyorum...';
+        log.textContent = 'Dinleniyor...';
+
+        // Web Speech API ile ses tanıma başlat
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+          alert('Tarayıcınız ses tanımayı desteklemiyor!');
+          return;
+        }
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.lang = 'tr-TR';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.start();
+
+        recognition.onresult = (event) => {
+          const speech = event.results[0][0].transcript.toLowerCase();
+          log.textContent = 'Kullanıcı dedi ki: ' + speech;
+          botCevapVer(speech);
+        };
+
+        recognition.onerror = (event) => {
+          status.textContent = 'Ses tanıma hatası: ' + event.error;
+          log.textContent = '';
+        };
+
+        recognition.onend = () => {
+          status.textContent = 'Ses tanıma sona erdi.';
+          // İstersen otomatik tekrar başlat:
+          // recognition.start();
+        };
+      })
+      .catch(err => {
+        status.textContent = 'Mikrofon izni reddedildi: ' + err.message;
+      });
+    };
+
+    // Görüntülü konuşma başlatma (kamera + mikrofon)
+    btnVideo.onclick = () => {
+      status.textContent = 'Kamera ve mikrofon izni isteniyor...';
       navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        .then(stream => {
-          status.textContent = "Kamera ve mikrofon aktif.";
-          video.srcObject = stream;
-          video.style.display = "block";
-          btn.style.display = "none";
-          botKonus("Merhaba! NovaTalk botuna hoş geldin. Sana nasıl yardımcı olabilirim?");
-        })
-        .catch(err => {
-          status.textContent = "İzin reddedildi veya hata oluştu: " + err.message;
-        });
-    });
+      .then(stream => {
+        videoStream = stream;
+        video.srcObject = stream;
+        video.style.display = 'block';
+        status.textContent = 'Kamera ve mikrofon aktif. Konuş, seni dinliyorum...';
+        log.textContent = 'Dinleniyor...';
+
+        // Aynı ses tanıma fonksiyonu video için de kullanılabilir
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+          alert('Tarayıcınız ses tanımayı desteklemiyor!');
+          return;
+        }
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.lang = 'tr-TR';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.start();
+
+        recognition.onresult = (event) => {
+          const speech = event.results[0][0].transcript.toLowerCase();
+          log.textContent = 'Kullanıcı dedi ki: ' + speech;
+          botCevapVer(speech);
+        };
+
+        recognition.onerror = (event) => {
+          status.textContent = 'Ses tanıma hatası: ' + event.error;
+          log.textContent = '';
+        };
+
+        recognition.onend = () => {
+          status.textContent = 'Ses tanıma sona erdi.';
+          // istersen otomatik başlatabilirsin
+          // recognition.start();
+        };
+      })
+      .catch(err => {
+        status.textContent = 'Kamera veya mikrofon izni reddedildi: ' + err.message;
+      });
+    };
+
+    // Basit bot cevap fonksiyonu
+    function botCevapVer(kullaniciSoz) {
+      // Basit anahtar kelimelere göre cevap ver
+      if (kullaniciSoz.includes('nasılsın')) {
+        botKonus('İyiyim, teşekkür ederim! Sen nasılsın?');
+      } else if (kullaniciSoz.includes('merhaba')) {
+        botKonus('Merhaba! Sana nasıl yardımcı olabilirim?');
+      } else if (kullaniciSoz.includes('görüşürüz')) {
+        botKonus('Görüşmek üzere! İyi günler!');
+        durdurKonusma();
+      } else {
+        botKonus('Üzgünüm, bunu anlayamadım. Lütfen tekrar eder misin?');
+      }
+    }
+
+    // Konuşmayı durdurmak için
+    function durdurKonusma() {
+      if (recognition) {
+        recognition.stop();
+      }
+      if (audioStream) {
+        audioStream.getTracks().forEach(track => track.stop());
+      }
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+        video.style.display = 'none';
+      }
+      status.textContent = 'Konuşma sonlandırıldı.';
+      log.textContent = '';
+    }
   </script>
 
 </body>
