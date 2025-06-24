@@ -1,264 +1,277 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NovaTalk - ChatNova ile Görüşme</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f0f0f0;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
-    header {
-      background: #00695c;
-      color: white;
-      text-align: center;
-      padding: 16px;
-      font-size: 24px;
-    }
-    #callScreen {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 10px;
-    }
-    #avatar {
-      width: 120px;
-      height: 120px;
-      background-color: #80cbc4;
-      border-radius: 50%;
-      margin-bottom: 10px;
-      position: relative;
-      overflow: hidden;
-    }
-    .eye {
-      width: 20px;
-      height: 20px;
-      background: #fff;
-      border-radius: 50%;
-      position: absolute;
-      top: 30px;
-      animation: blink 5s infinite;
-    }
-    .eye.left { left: 30px; }
-    .eye.right { right: 30px; }
-    .mouth {
-      width: 60px;
-      height: 20px;
-      background: #004d40;
-      border-radius: 0 0 30px 30px;
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      transition: transform 0.2s;
-    }
-    .mouth.talking {
-      transform: translateX(-50%) scaleY(1.6);
-    }
-    @keyframes blink {
-      0%, 100% { transform: scaleY(1); }
-      50% { transform: scaleY(0.1); }
-    }
-    #video {
-      margin-top: 20px;
-      width: 90%;
-      max-width: 400px;
-      display: none;
-      border-radius: 10px;
-    }
-    #log {
-      width: 90%;
-      max-width: 400px;
-      background: white;
-      padding: 10px;
-      margin: 10px;
-      border-radius: 8px;
-      min-height: 80px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-    }
-    #statusMsg {
-      font-size: 16px;
-      margin-top: 10px;
-    }
-    footer {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      padding: 12px;
-      background: #e0e0e0;
-    }
-    button {
-      padding: 12px 20px;
-      margin: 5px 10px;
-      font-size: 16px;
-      border-radius: 30px;
-      border: none;
-      cursor: pointer;
-      background-color: #00796b;
-      color: white;
-    }
-    #securityNote {
-      text-align: center;
-      font-size: 12px;
-      color: gray;
-      margin: 5px 10px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NovaTalk - ChatNova</title>
+<style>
+  body {
+    margin:0; font-family: Arial, sans-serif; background:#e0f7fa; display:flex; flex-direction:column; height:100vh; align-items:center; justify-content:center;
+  }
+  header {
+    background:#00796b; color:#fff; padding:15px 0; width:100%; text-align:center; font-size:26px; font-weight:bold; user-select:none;
+  }
+  #callArea {
+    background:#ffffff; width:360px; max-width:95vw; border-radius:15px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); padding:20px; display:flex; flex-direction:column; align-items:center;
+  }
+  #status {
+    font-size:18px; color:#004d40; margin-bottom:15px; min-height:22px; user-select:none;
+  }
+  #video {
+    width:320px; height:240px; border-radius:12px; background:#000; display:none; margin-bottom:15px; object-fit:cover;
+  }
+  #avatar {
+    width:120px; height:120px; border-radius:50%; background:#26a69a; position:relative; margin-bottom:15px;
+    box-shadow: 0 0 8px #00796b inset;
+  }
+  /* Gözler */
+  .eye {
+    width:22px; height:22px; background:#fff; border-radius:50%; position:absolute; top:40px;
+    box-shadow: inset 0 0 4px #444;
+  }
+  .eye.left { left:30px; }
+  .eye.right { right:30px; }
+  .pupil {
+    width:10px; height:10px; background:#004d40; border-radius:50%; position:absolute; top:6px; left:6px;
+    transition: all 0.2s ease;
+  }
+  /* Ağız */
+  #mouth {
+    position:absolute; bottom:30px; left:50%; transform: translateX(-50%);
+    width:60px; height:30px; border-radius: 0 0 40px 40px / 0 0 50px 50px;
+    background:#004d40;
+    transition: height 0.15s ease;
+  }
+  /* Butonlar */
+  #btnToggleCall {
+    background:#00796b; color:#fff; border:none; padding:15px 30px; font-size:18px; border-radius:30px;
+    cursor:pointer; user-select:none; box-shadow: 0 5px #004d40;
+    transition: transform 0.1s ease;
+  }
+  #btnToggleCall:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px #004d40;
+  }
+  #securityNote {
+    font-size:12px; color:#555; margin-top:12px; text-align:center; user-select:none;
+  }
+  #log {
+    width:100%; max-width:320px; height:140px; background:#f0f4f4; border-radius:10px; overflow-y:auto;
+    padding:10px; font-size:14px; color:#004d40; margin-top:10px; white-space:pre-wrap;
+  }
+</style>
 </head>
 <body>
-  <header>NovaTalk - ChatNova</header>
 
-  <div id="callScreen">
-    <div id="avatar">
-      <div class="eye left"></div>
-      <div class="eye right"></div>
-      <div class="mouth" id="mouth"></div>
-    </div>
-    <div id="statusMsg">📞 Arama bekleniyor...</div>
-    <video id="video" autoplay muted playsinline></video>
-    <div id="log">📝 Konuşmalar buraya gelecek...</div>
+<header>NovaTalk - ChatNova</header>
+
+<div id="callArea">
+  <div id="status">Hazır. Başlamak için tuşa bas.</div>
+  <video id="video" autoplay playsinline muted></video>
+  <div id="avatar">
+    <div class="eye left"><div class="pupil" id="pupilLeft"></div></div>
+    <div class="eye right"><div class="pupil" id="pupilRight"></div></div>
+    <div id="mouth"></div>
   </div>
+  <button id="btnToggleCall">📞 Aramayı Başlat</button>
+  <div id="log">📝 Sohbet burada gözükecek...</div>
+</div>
 
-  <footer>
-    <button onclick="startCall(false)">🎤 Sesli Arama</button>
-    <button onclick="startCall(true)">📹 Görüntülü Arama</button>
-    <button onclick="stopRecognition()" id="stopListenBtn" style="display:none; background:#ffa726">🔇 Konuşmayı Durdur</button>
-    <button onclick="endCall()" id="endBtn" style="display:none; background:#d32f2f;">❌ Kapat</button>
-  </footer>
+<div id="securityNote">🔒 Mikrofon ve kamera izinleri yalnızca siz başlattığınızda aktif olur. Verileriniz asla kaydedilmez veya paylaşılmaz.</div>
 
-  <div id="securityNote">🔒 Mikrofon ve kamera yalnızca arama sırasında aktifleşir. Verileriniz saklanmaz.</div>
+<script>
+  const btnToggleCall = document.getElementById('btnToggleCall');
+  const status = document.getElementById('status');
+  const video = document.getElementById('video');
+  const log = document.getElementById('log');
+  const avatarMouth = document.getElementById('mouth');
+  const pupilLeft = document.getElementById('pupilLeft');
+  const pupilRight = document.getElementById('pupilRight');
 
-  <script>
-    const log = document.getElementById("log");
-    const statusMsg = document.getElementById("statusMsg");
-    const video = document.getElementById("video");
-    const endBtn = document.getElementById("endBtn");
-    const stopListenBtn = document.getElementById("stopListenBtn");
-    const mouth = document.getElementById("mouth");
+  let recognition = null;
+  let isCalling = false;
+  let audioStream = null;
+  let videoStream = null;
+  let inactivityTimeout = null;
+  let isSpeaking = false;
 
-    let recognition;
-    let speaking = false;
-    let inactivityTimer;
-    let audioStream, videoStream;
-    let callStarted = false;
+  // Botun konuşması için
+  function speak(text) {
+    if (speechSynthesis.speaking) speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'tr-TR';
+    utter.pitch = 1.1;
+    utter.rate = 1;
+    utter.onstart = () => {
+      isSpeaking = true;
+      animateMouth(true);
+    };
+    utter.onend = () => {
+      isSpeaking = false;
+      animateMouth(false);
+    };
+    speechSynthesis.speak(utter);
+  }
 
-    function logMessage(msg) {
-      log.textContent += "\n" + msg;
-      log.scrollTop = log.scrollHeight;
+  // Ağız animasyonu aç/kapat
+  function animateMouth(open) {
+    avatarMouth.style.height = open ? '50px' : '30px';
+  }
+
+  // Gözler sağa sola basit hareket animasyonu (randomize)
+  function moveEyes() {
+    if (isSpeaking) return; // Konuşurken sabit kalsın
+    const x = Math.random() * 6 - 3; // -3 ile 3 px arası
+    const y = Math.random() * 4 - 2;
+    pupilLeft.style.transform = `translate(${x}px, ${y}px)`;
+    pupilRight.style.transform = `translate(${x}px, ${y}px)`;
+  }
+  setInterval(moveEyes, 2000);
+
+  // Log ekleme ve scroll
+  function logMessage(msg) {
+    log.textContent += `\n${msg}`;
+    log.scrollTop = log.scrollHeight;
+  }
+
+  // Botun yanıtı - basit doğal dil (daha gelişmiş API'lerle bağlanabilir)
+  function botReply(text) {
+    text = text.toLowerCase();
+    let response = "Üzgünüm, bunu anlayamadım. Lütfen tekrar eder misin?";
+    if (text.includes("merhaba")) response = "Merhaba! Sana nasıl yardımcı olabilirim?";
+    else if (text.includes("nasılsın")) response = "İyiyim, teşekkür ederim! Sen nasılsın?";
+    else if (text.includes("görüşürüz") || text.includes("hoşça kal")) {
+      response = "Görüşmek üzere! İyi günler!";
+      stopCall();
     }
+    logMessage("🤖 ChatNova: " + response);
+    speak(response);
+  }
 
-    function speak(text) {
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = "tr-TR";
-      utter.onstart = () => {
-        mouth.classList.add("talking");
-      };
-      utter.onend = () => {
-        mouth.classList.remove("talking");
-      };
-      speechSynthesis.speak(utter);
+  // Mikrofon ve kamera izinlerini al
+  async function getMedia(withVideo) {
+    try {
+      const constraints = withVideo ? { audio: true, video: { width: 320, height: 240 } } : { audio: true };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      return stream;
+    } catch (e) {
+      alert("Mikrofon ve/veya kamera izni reddedildi veya desteklenmiyor.");
+      stopCall();
+      throw e;
     }
+  }
 
-    function endCall() {
-      callStarted = false;
-      if (recognition) recognition.stop();
-      if (audioStream) audioStream.getTracks().forEach(t => t.stop());
-      if (videoStream) videoStream.getTracks().forEach(t => t.stop());
-      video.style.display = "none";
-      statusMsg.textContent = "📞 Arama sona erdi.";
-      endBtn.style.display = "none";
-      stopListenBtn.style.display = "none";
-      clearTimeout(inactivityTimer);
+  // Ses tanımayı başlat
+  function startRecognition() {
+    if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+      alert("Tarayıcınız ses tanımayı desteklemiyor.");
+      stopCall();
+      return;
     }
+    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'tr-TR';
+    recognition.interimResults = false;
+    recognition.continuous = true;
 
-    function resetInactivity() {
-      clearTimeout(inactivityTimer);
-      inactivityTimer = setTimeout(() => {
-        speak("Dostum, konuşmuyorsun. Kapatmak zorundayım.");
-        endCall();
-      }, 15000);
-    }
+    recognition.onstart = () => {
+      status.textContent = "🎧 Dinleniyor...";
+    };
 
-    function startRecognition() {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognition = new SpeechRecognition();
-      recognition.lang = "tr-TR";
-      recognition.interimResults = false;
+    recognition.onresult = (event) => {
+      clearTimeout(inactivityTimeout); // Dinleme sıfırlanıyor
+      const lastResult = event.results[event.results.length - 1];
+      const transcript = lastResult[0].transcript.trim();
+      logMessage("👤 Sen: " + transcript);
+      botReply(transcript);
+      resetInactivityTimer();
+    };
 
-      recognition.onstart = () => {
-        statusMsg.textContent = "🎧 ChatNova seni dinliyor...";
-        if (!speaking) {
-          speak("Seni dinliyorum.");
-          speaking = true;
-        }
-      };
-
-      recognition.onresult = e => {
-        const userText = e.results[0][0].transcript;
-        logMessage("👤 Sen: " + userText);
-        respondTo(userText);
-        resetInactivity();
-      };
-
-      recognition.onerror = e => {
-        logMessage("⚠️ Hata: " + e.error);
-      };
-
-      recognition.onend = () => {
-        if (callStarted) recognition.start();
-      };
-
-      recognition.start();
-      resetInactivity();
-    }
-
-    function stopRecognition() {
-      if (recognition) {
-        recognition.stop();
-        statusMsg.textContent = "⏸️ Dinleme durduruldu.";
+    recognition.onerror = (event) => {
+      if(event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        alert("Mikrofon izni yok veya engellendi.");
+        stopCall();
+      } else if (event.error === 'aborted' || event.error === 'no-speech') {
+        // Hata değil, normal kapatma vs.
+      } else {
+        logMessage("⚠️ Ses tanıma hatası: " + event.error);
       }
-    }
+    };
 
-    function respondTo(text) {
-      let response = "Bunu anlayamadım.";
-      const lower = text.toLowerCase();
-      if (lower.includes("merhaba")) response = "Merhaba, nasıl yardımcı olabilirim?";
-      else if (lower.includes("nasılsın")) response = "İyiyim, sen nasılsın?";
-      else if (lower.includes("görüşürüz")) response = "Hoşçakal! Görüşmek üzere.";
-      logMessage("🤖 ChatNova: " + response);
-      speak(response);
-    }
+    recognition.onend = () => {
+      if (isCalling) {
+        recognition.start(); // Otomatik devam et
+      }
+    };
 
-    function startCall(videoEnabled) {
-      callStarted = true;
-      endBtn.style.display = "inline-block";
-      stopListenBtn.style.display = "inline-block";
-      statusMsg.textContent = "📞 ChatNova aranıyor...";
-      navigator.mediaDevices.getUserMedia({ audio: true, video: videoEnabled })
-        .then(stream => {
-          audioStream = stream;
-          if (videoEnabled) {
-            videoStream = stream;
-            video.srcObject = stream;
-            video.style.display = "block";
-          }
-          setTimeout(() => {
-            statusMsg.textContent = "✅ Bağlandı. ChatNova seni dinliyor...";
-            startRecognition();
-          }, 4000);
-        })
-        .catch(err => {
-          statusMsg.textContent = "❌ İzin alınamadı: " + err.message;
-        });
+    recognition.start();
+    resetInactivityTimer();
+  }
+
+  // Konuşmazsa kapat
+  function resetInactivityTimer() {
+    clearTimeout(inactivityTimeout);
+    inactivityTimeout = setTimeout(() => {
+      speak("Dostum, konuşmuyorsun. Kapatmak zorundayım.");
+      stopCall();
+    }, 30000);
+  }
+
+  // Çağrıyı başlat
+  async function startCall() {
+    if (isCalling) return;
+    isCalling = true;
+    btnToggleCall.textContent = "🔇 Aramayı Durdur";
+    status.textContent = "ChatNova aranıyor...";
+    log.textContent = "📝 Sohbet burada gözükecek...";
+    video.style.display = "none";
+
+    try {
+      audioStream = await getMedia(false);
+      startRecognition();
+      status.textContent = "Görüşme başladı.";
+      speak("Selam! Seni dinliyorum.");
+    } catch (e) {
+      stopCall();
     }
-  </script>
+  }
+
+  // Çağrıyı durdur
+  function stopCall() {
+    if (!isCalling) return;
+    isCalling = false;
+    btnToggleCall.textContent = "📞 Aramayı Başlat";
+    status.textContent = "Görüşme sonlandırıldı.";
+    if (recognition) {
+      recognition.onresult = null;
+      recognition.onerror = null;
+      recognition.onend = null;
+      recognition.stop();
+      recognition = null;
+    }
+    if (audioStream) {
+      audioStream.getTracks().forEach(t => t.stop());
+      audioStream = null;
+    }
+    if (videoStream) {
+      videoStream.getTracks().forEach(t => t.stop());
+      videoStream = null;
+    }
+    video.style.display = "none";
+    clearTimeout(inactivityTimeout);
+  }
+
+  // Butona basınca arama aç/kapat
+  btnToggleCall.addEventListener('click', () => {
+    if (!isCalling) startCall();
+    else stopCall();
+  });
+
+  // Avatar ağız hareketi otomatik yapılıyor konuşurken
+  setInterval(() => {
+    if (!isSpeaking) animateMouth(false);
+  }, 500);
+
+</script>
+
 </body>
 </html>
