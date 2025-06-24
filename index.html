@@ -1,120 +1,325 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8" />
-<title>NovaTalk - Google AI Sesli Sohbet</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<style>
-  body { font-family: Arial, sans-serif; padding: 20px; background:#121212; color:#eee; text-align:center;}
-  button { font-size:18px; padding:15px 30px; margin:10px; border:none; border-radius:20px; cursor:pointer;}
-  #btnStart { background:#4caf50; color:#fff;}
-  #btnStop { background:#d32f2f; color:#fff; display:none;}
-  #log { background:#222; padding:15px; margin-top:20px; max-width:600px; margin-left:auto; margin-right:auto; border-radius:15px; min-height:100px; white-space:pre-wrap;}
-</style>
+  <meta charset="UTF-8" />
+  <title>NovaTalk - Sesli & Görüntülü Yapay Zeka Sohbet</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0; padding: 20px;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+    #videoContainer {
+      margin: 15px auto;
+      max-width: 360px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 12px #0f0;
+    }
+    video {
+      width: 100%;
+      height: auto;
+      display: none;
+      border-radius: 12px;
+    }
+    #buttons {
+      margin: 20px auto;
+      max-width: 400px;
+    }
+    button {
+      background-color: #4caf50;
+      border: none;
+      color: white;
+      padding: 15px 25px;
+      margin: 8px;
+      border-radius: 30px;
+      font-size: 18px;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.3s;
+      min-width: 140px;
+    }
+    button:hover {
+      background-color: #3e8e41;
+    }
+    button:disabled {
+      background-color: #666;
+      cursor: not-allowed;
+    }
+    #btnStop {
+      background-color: #d32f2f;
+    }
+    #btnStop:hover {
+      background-color: #b12727;
+    }
+    #status, #securityNotice {
+      margin-top: 12px;
+      font-size: 16px;
+      color: #ccc;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+      min-height: 1.4em;
+    }
+    #log {
+      background: #222;
+      margin-top: 20px;
+      max-width: 600px;
+      height: 140px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 12px;
+      border-radius: 12px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-size: 15px;
+      user-select: text;
+    }
+    /* Telif hakları uyarısı alanı */
+    #copyrightNotice {
+      font-size: 13px;
+      color: #555;
+      margin-top: 30px;
+      user-select: none;
+      opacity: 0.5;
+    }
+  </style>
 </head>
 <body>
 
-<h1>NovaTalk - Google AI Sesli Sohbet</h1>
-<button id="btnStart">🎤 Konuşmaya Başla</button>
-<button id="btnStop">🛑 Konuşmayı Durdur</button>
+  <h1>NovaTalk</h1>
+  <div id="securityNotice">
+    🔒 Gizlilik ve Güvenlik: Mikrofon ve kamera izni sadece bu sohbet için kullanılır. Hiç kimse sizi izleyemez veya dinleyemez.
+  </div>
 
-<div id="log">Loglar burada gösterilecek...</div>
+  <div id="buttons">
+    <button id="btnAudio">🎤 Sesli Konuşmayı Başlat</button>
+    <button id="btnVideo">📷 Görüntülü Konuşmayı Başlat</button>
+    <button id="btnStop" disabled>🛑 Konuşmayı/Dinlemeyi Durdur</button>
+  </div>
+
+  <div id="videoContainer">
+    <video id="video" autoplay playsinline></video>
+  </div>
+
+  <div id="status">Durum: Bekleniyor...</div>
+  <div id="log">📝 Konuşma logları buraya gelecek...</div>
+  <div id="copyrightNotice">
+    © 2025 NovaTalk. Kopyalanması, çoğaltılması ve izinsiz kullanılması yasaktır.
+  </div>
 
 <script>
-const btnStart = document.getElementById('btnStart');
-const btnStop = document.getElementById('btnStop');
-const log = document.getElementById('log');
+  const btnAudio = document.getElementById('btnAudio');
+  const btnVideo = document.getElementById('btnVideo');
+  const btnStop = document.getElementById('btnStop');
+  const video = document.getElementById('video');
+  const status = document.getElementById('status');
+  const log = document.getElementById('log');
 
-let recognition;
-let recognizing = false;
+  let recognition = null;
+  let audioStream = null;
+  let videoStream = null;
+  let recognizing = false;
+  let waitingForUserSpeech = false;
+  let noSpeechTimeout;
 
-btnStart.onclick = () => {
-  if (recognizing) return;
-  startRecognition();
-};
-
-btnStop.onclick = () => {
-  if (!recognizing) return;
-  stopRecognition();
-};
-
-function logYaz(mesaj) {
-  log.textContent += '\n' + mesaj;
-  log.scrollTop = log.scrollHeight;
-}
-
-function startRecognition() {
-  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-    alert('Tarayıcınız ses tanımayı desteklemiyor!');
-    return;
+  // Kullanıcıdan izin ister
+  async function requestPermissions(videoNeeded = false) {
+    try {
+      const constraints = videoNeeded ? { audio: true, video: true } : { audio: true };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (videoNeeded) {
+        video.srcObject = stream;
+        video.style.display = 'block';
+        videoStream = stream;
+      } else {
+        if (videoStream) {
+          videoStream.getTracks().forEach(t => t.stop());
+          video.style.display = 'none';
+          videoStream = null;
+        }
+      }
+      audioStream = stream;
+      return true;
+    } catch (e) {
+      status.textContent = '❌ İzin reddedildi veya hata oluştu: ' + e.message;
+      return false;
+    }
   }
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  recognition = new SpeechRecognition();
-  recognition.lang = 'tr-TR';
-  recognition.interimResults = false;
-  recognition.continuous = true;
 
-  recognition.onstart = () => {
-    recognizing = true;
-    btnStart.style.display = 'none';
-    btnStop.style.display = 'inline-block';
-    logYaz('🎙️ Dinleniyor...');
-  };
+  // Bot konuşma fonksiyonu (Text-to-Speech)
+  function botKonus(text) {
+    if (speechSynthesis.speaking) {
+      speechSynthesis.cancel();
+    }
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'tr-TR';
+    utterance.pitch = 1.1;
+    utterance.rate = 1;
+    utterance.onend = () => {
+      // Konuşma bittikten sonra yeniden dinlemeye devam et
+      if (recognizing) {
+        recognition.start();
+        waitingForUserSpeech = true;
+        startNoSpeechTimer();
+      }
+    };
+    speechSynthesis.speak(utterance);
+    logMesaj('🤖 ChatNova: ' + text);
+  }
 
-  recognition.onresult = async (event) => {
-    const lastIndex = event.results.length -1;
-    const text = event.results[lastIndex][0].transcript.trim();
-    logYaz('👤 Sen: ' + text);
-    // Google AI Chat API'ye gönderip cevap al
-    const cevap = await googleChatApiSorgula(text);
-    botKonus(cevap);
-  };
+  // Log mesaj yazma
+  function logMesaj(msg) {
+    log.textContent += '\n' + msg;
+    log.scrollTop = log.scrollHeight;
+  }
 
-  recognition.onerror = (event) => {
-    logYaz('⚠️ Hata: ' + event.error);
-  };
+  // Konuşma dinlemeye başlama
+  async function startRecognition(videoNeeded = false) {
+    const izinAlindi = await requestPermissions(videoNeeded);
+    if (!izinAlindi) return;
 
-  recognition.onend = () => {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      alert('Tarayıcınız ses tanımayı desteklemiyor!');
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.lang = 'tr-TR';
+    recognition.interimResults = false;
+    recognition.continuous = true;
+
+    recognition.onstart = () => {
+      recognizing = true;
+      btnAudio.disabled = true;
+      btnVideo.disabled = true;
+      btnStop.disabled = false;
+      status.textContent = '🎙️ Dinleniyor... Lütfen konuşun.';
+      waitingForUserSpeech = true;
+      startNoSpeechTimer();
+    };
+
+    recognition.onerror = (event) => {
+      status.textContent = '⚠️ Ses tanıma hatası: ' + event.error;
+      logMesaj('⚠️ Hata: ' + event.error);
+      if (event.error === 'not-allowed') {
+        btnAudio.disabled = false;
+        btnVideo.disabled = false;
+        btnStop.disabled = true;
+      }
+    };
+
+    recognition.onresult = async (event) => {
+      waitingForUserSpeech = false;
+      clearTimeout(noSpeechTimeout);
+
+      const last = event.results.length - 1;
+      const text = event.results[last][0].transcript.trim();
+      logMesaj('👤 Sen: ' + text);
+      status.textContent = '🎧 İşleniyor...';
+
+      // Burada Google AI API'ye soruyu gönderip cevap alınacak
+      const cevap = await googleChatApiSorgula(text);
+
+      if (!cevap) {
+        botKonus('Üzgünüm, sizi anlayamadım.');
+      } else {
+        botKonus(cevap);
+      }
+    };
+
+    recognition.onend = () => {
+      recognizing = false;
+      btnAudio.disabled = false;
+      btnVideo.disabled = false;
+      btnStop.disabled = true;
+      status.textContent = '⏸️ Dinleme durdu.';
+      waitingForUserSpeech = false;
+
+      if (videoStream) {
+        video.style.display = 'none';
+        videoStream.getTracks().forEach(t => t.stop());
+        videoStream = null;
+      }
+      if (audioStream) {
+        audioStream.getTracks().forEach(t => t.stop());
+        audioStream = null;
+      }
+    };
+
+    recognition.start();
+  }
+
+  // Konuşmayı durdurma
+  function stopRecognition() {
+    if (recognition) {
+      recognition.stop();
+    }
+    if (audioStream) {
+      audioStream.getTracks().forEach(track => track.stop());
+      audioStream = null;
+    }
+    if (videoStream) {
+      video.style.display = 'none';
+      videoStream.getTracks().forEach(track => track.stop());
+      videoStream = null;
+    }
     recognizing = false;
-    btnStart.style.display = 'inline-block';
-    btnStop.style.display = 'none';
-    logYaz('🛑 Dinleme durdu.');
-  };
-
-  recognition.start();
-}
-
-function stopRecognition() {
-  if (recognition) {
-    recognition.stop();
+    btnAudio.disabled = false;
+    btnVideo.disabled = false;
+    btnStop.disabled = true;
+    status.textContent = '🛑 Konuşma/dinleme durduruldu.';
+    logMesaj('🛑 Konuşma sonlandırıldı.');
+    waitingForUserSpeech = false;
+    clearTimeout(noSpeechTimeout);
   }
-}
 
-function botKonus(text) {
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = 'tr-TR';
-  speechSynthesis.speak(utter);
-  logYaz('🤖 ChatNova: ' + text);
-}
+  // 5 saniye boyunca konuşma olmazsa uyarı ver
+  function startNoSpeechTimer() {
+    clearTimeout(noSpeechTimeout);
+    noSpeechTimeout = setTimeout(() => {
+      if (waitingForUserSpeech) {
+        botKonus('Hadi dostum, konuşacak mısın?');
+      }
+    }, 5000);
+  }
 
-// Google Chat API çağrısı - NOT: Burada gerçek API çağrısı yapılmıyor, bunu backend üzerinden yapmalısın!
-// Aşağıda örnek mock cevap var:
-async function googleChatApiSorgula(metin) {
-  logYaz('... Google AI sorgulanıyor ...');
-  // Burada fetch ile kendi backend'inize veya Google AI endpointine POST yapacaksınız.
-  // Örnek: 
-  /*
-  const response = await fetch('https://your-backend.com/google-chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer API_KEY' },
-    body: JSON.stringify({ message: metin }),
+  // Google AI API sorgusu (burada sadece örnek, gerçek API çağrısını backend ile yapmalısın)
+  async function googleChatApiSorgula(soru) {
+    logMesaj('... Google AI sorgulanıyor ...');
+    // TODO: Burada backend ile gerçek Google AI API çağrısını yapmalısın.
+    // Örnek fetch:
+    /*
+    const response = await fetch('https://backend-ornek.com/google-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer API_KEY' },
+      body: JSON.stringify({ message: soru }),
+    });
+    const data = await response.json();
+    return data.reply;
+    */
+    // Şimdilik demo cevap dön:
+    return new Promise(resolve => setTimeout(() => resolve('Merhaba! NovaTalk burda. Henüz gerçek API bağlanmadı.'), 1000));
+  }
+
+  btnAudio.onclick = () => startRecognition(false);
+  btnVideo.onclick = () => startRecognition(true);
+  btnStop.onclick = () => stopRecognition();
+
+  // Kopyalama ve sağ tık engelleme (basit)
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('copy', e => {
+    e.preventDefault();
+    alert('Bu içerik korumalıdır. Kopyalama izni yoktur.');
   });
-  const data = await response.json();
-  return data.reply;
-  */
-  // Şimdilik sabit cevap dönüyorum:
-  return new Promise(resolve => setTimeout(() => resolve('Merhaba, ben NovaTalk! Şu an gerçek API bağlanmadı.'), 1000));
-}
 
 </script>
 
