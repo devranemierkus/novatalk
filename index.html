@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>NovaTalk - ChatNova Sesli & Görüntülü Arama</title>
+<title>NovaTalk - Anlık Sesli & Görüntülü Arama</title>
 <style>
   body {
     margin:0; font-family: Arial, sans-serif; background:#e0f7fa; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh;
@@ -32,13 +32,13 @@
   .eye.right { right:30px; }
   .pupil {
     width:10px; height:10px; background:#004d40; border-radius:50%; position:absolute; top:6px; left:6px;
-    transition: all 0.2s ease;
+    transition: all 0.1s ease;
   }
   #mouth {
     position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
     width:60px; height:30px; border-radius: 0 0 40px 40px / 0 0 50px 50px;
     background: #004d40;
-    transition: height 0.15s ease;
+    transition: height 0.1s ease;
   }
   #btnGroup {
     margin-top:15px; display:flex; justify-content:center; gap:12px;
@@ -96,7 +96,7 @@
     <button id="btnVideoCall">📹 Görüntülü Arama</button>
   </div>
 
-  <button id="talkButton" aria-pressed="false" aria-label="Basılı tut konuş">🎙 Bas & Konuş</button>
+  <button id="talkButton" aria-pressed="false" aria-label="Basılı tut konuş">🎙 Basılı Tut Konuş</button>
   <button id="btnEndCall" aria-label="Aramayı bitir">🔴 Aramayı Bitir</button>
 
   <div id="log" aria-live="polite" aria-atomic="true">📝 Sohbet burada gösterilecek...</div>
@@ -122,9 +122,7 @@
   let audioStream = null;
   let videoStream = null;
   let isListening = false;
-  let inactivityTimeout = null;
   let isSpeaking = false;
-  let micStream = null;
 
   // Ağız animasyonu aç/kapa
   function animateMouth(open) {
@@ -180,10 +178,10 @@
 
   // Medya izni alma (ses için)
   async function getAudioStream() {
-    if(micStream) return micStream;
+    if(audioStream) return audioStream;
     try {
-      micStream = await navigator.mediaDevices.getUserMedia({audio:true});
-      return micStream;
+      audioStream = await navigator.mediaDevices.getUserMedia({audio:true});
+      return audioStream;
     } catch(e) {
       alert('Mikrofon izni reddedildi veya desteklenmiyor.');
       endCall();
@@ -204,7 +202,7 @@
     }
   }
 
-  // Ses tanıma başlatma
+  // Ses tanıma başlatma (tek seferlik)
   function startRecognition() {
     if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
       alert('Tarayıcınız ses tanımayı desteklemiyor.');
@@ -213,7 +211,7 @@
     recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.lang = 'tr-TR';
     recognition.interimResults = false;
-    recognition.continuous = false; // Tek seferlik dinle
+    recognition.continuous = false; // anlık dinle
     recognition.onstart = () => {
       status.textContent = '🎧 Dinleniyor...';
       isListening = true;
@@ -236,7 +234,7 @@
       isListening = false;
       talkButton.classList.remove('active');
       talkButton.setAttribute('aria-pressed', 'false');
-      talkButton.textContent = '🎙 Basılı tut konuş';
+      talkButton.textContent = '🎙 Basılı Tut Konuş';
       status.textContent = 'Arama açık, basılı tut konuş.';
     };
     recognition.start();
@@ -291,7 +289,6 @@
 
     try {
       audioStream = await getAudioStream();
-      // Mikrofonu kapalı tutuyoruz, sadece basılı tutunca açılıyor
       status.textContent = 'Sesli arama başladı. Basılı tut konuş.';
       logMessage('✅ Sesli arama başladı.');
     } catch(e) {
@@ -333,7 +330,6 @@
     isCalling = false;
     isVideo = false;
 
-    // Durdur streamler
     if(audioStream){
       audioStream.getTracks().forEach(t => t.stop());
       audioStream = null;
@@ -358,7 +354,6 @@
     status.textContent = 'Arama sonlandı. Yeni arama başlatabilirsiniz.';
     logMessage('❌ Arama kapatıldı.');
   }
-
 </script>
 
 </body>
