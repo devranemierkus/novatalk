@@ -90,29 +90,27 @@
     const btnVideoStop = document.getElementById('btnVideoStop');
     const video = document.getElementById('video');
     const status = document.getElementById('status');
-    const log = document.getElementById('log'); // log değişkeni zaten doğru seçilmiş
+    const log = document.getElementById('log');
 
     let recognition = null;
     let audioStream = null;
     let videoStream = null;
     let isListening = false;
 
-    // Loglama fonksiyonu ekleyelim, böylece her log mesajı bir yerden geçer
+    // Loglama fonksiyonu: Mesajları hem HTML'e hem de konsola yazdırır
     function appendToLog(message) {
-      if (log) { // log elemanının varlığını kontrol et
+      if (log) {
         const now = new Date();
         const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
         log.textContent += `\n[${time}] ${message}`;
         log.scrollTop = log.scrollHeight; // Kaydırma çubuğunu aşağı indir
-        console.log(`[LOG]: ${message}`); // Tarayıcı konsoluna da yaz
       } else {
         console.error("Hata: 'log' elemanı bulunamadı!");
       }
+      console.log(`[LOG]: ${message}`); // Her zaman konsola da yaz
     }
 
-    // Başlangıç log mesajı
-    appendToLog("NovaTalk başlatıldı. Lütfen bir konuşma türü seçin.");
-
+    // Botun sesli yanıt vermesini sağlayan fonksiyon
     function botSpeak(text) {
       if (speechSynthesis.speaking) {
         speechSynthesis.cancel();
@@ -132,45 +130,71 @@
       appendToLog(`Bot söyledi: ${text}`);
     }
 
+    // Ses tanımayı başlatan fonksiyon
     function startRecognition() {
       if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
         status.textContent = 'Tarayıcınız ses tanımayı desteklemiyor!';
-        appendToLog('Hata: Tarayıcı ses tanımayı desteklemiyor.');
+        appendToLog('Hata: Tarayıcı ses tanımayı desteklemiyor. Lütfen Chrome gibi destekleyen bir tarayıcı kullanın.');
         return;
       }
+
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognition = new SpeechRecognition();
       recognition.lang = 'tr-TR';
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
+      recognition.interimResults = false; // Ara sonuçları değil, sadece kesin sonuçları döndür
+      recognition.maxAlternatives = 1; // En iyi tahmini döndür
 
       recognition.onstart = () => {
         status.textContent = 'Konuşmanı dinliyorum...';
-        // log.textContent = ''; // Her başlangıçta logu temizlemek istersen bu satırı aktif edebilirsin
         appendToLog('Ses tanıma başlatıldı. Dinleniyor...');
-        isListening = true;
+        isListening = true; // Dinleme durumunu aktif et
       };
 
       recognition.onresult = (event) => {
         const text = event.results[0][0].transcript.toLowerCase();
-        appendToLog('Sen söyledin: ' + text); // appendToLog ile loglama
+        appendToLog('Sen söyledin: ' + text);
         botReply(text);
       };
 
       recognition.onerror = (event) => {
         status.textContent = 'Hata: ' + event.error;
-        appendToLog(`Ses tanıma hatası: ${event.error}`);
+        appendToLog(`Ses tanıma hatası: ${event.error}. Detay: ${event.message || 'Bilinmiyor.'}`);
         console.error("SpeechRecognition error:", event.error);
+
+        // Hata türüne göre daha spesifik mesajlar
+        if (event.error === 'not-allowed') {
+          appendToLog('Mikrofon erişimi reddedildi. Lütfen tarayıcı ayarlarınızdan izin verin.');
+          status.textContent = 'Mikrofon izni reddedildi.';
+        } else if (event.error === 'no-speech') {
+          appendToLog('Konuşma algılanmadı. Lütfen daha net konuşun.');
+          status.textContent = 'Konuşma algılanmadı.';
+        } else if (event.error === 'audio-capture') {
+          appendToLog('Mikrofon şu anda kullanılamıyor veya başka bir uygulama tarafından kullanılıyor.');
+          status.textContent = 'Mikrofon hatası.';
+        } else if (event.error === 'network') {
+          appendToLog('Ağ bağlantı hatası. İnternet bağlantınızı kontrol edin.');
+          status.textContent = 'Ağ hatası.';
+        }
+
         isListening = false; // Hata durumunda dinlemeyi durdur
-        recognition.stop(); // Hata durumunda tanımayı durdur
+        if (recognition) { // recognition objesi varsa durdur
+            recognition.stop();
+        }
       };
 
       recognition.onend = () => {
         appendToLog('Ses tanıma sona erdi.');
-        if(isListening) {
-          appendToLog('Tekrar dinleme başlatılıyor...');
-          recognition.start(); // Otomatik tekrar başlat
-          status.textContent = 'Dinlemeye devam ediliyor...';
+        if(isListening) { // Eğer hala dinlemede kalması gerekiyorsa (stopAll çağrılmadıysa)
+          appendToLog('Otomatik tekrar dinleme başlatılıyor...');
+          try {
+            recognition.start(); // Otomatik tekrar başlat
+            status.textContent = 'Dinlemeye devam ediliyor...';
+          } catch (e) {
+            appendToLog(`Tekrar başlatılırken hata: ${e.message}`);
+            console.error("Recognition re-start error:", e);
+            status.textContent = 'Dinleme hatası.';
+            isListening = false; // Hata durumunda tekrar denemeyi durdur
+          }
         } else {
           status.textContent = 'Ses tanıma durdu.';
           appendToLog('Ses tanıma kalıcı olarak durduruldu.');
@@ -180,109 +204,142 @@
       try {
         recognition.start();
       } catch (e) {
-        appendToLog(`Ses tanıma başlatılırken hata oluştu: ${e.message}`);
-        console.error("Recognition start error:", e);
+        appendToLog(`Ses tanıma başlatılırken genel hata oluştu: ${e.message}`);
+        console.error("Recognition start initial error:", e);
+        status.textContent = 'Ses tanıma başlatılamadı.';
       }
     }
 
+    // Botun kullanıcının söylediklerine verdiği yanıtlar
     function botReply(text) {
       if (text.includes('merhaba')) {
         botSpeak('Merhaba! Sana nasıl yardımcı olabilirim?');
       } else if (text.includes('nasılsın')) {
         botSpeak('İyiyim, teşekkür ederim! Sen nasılsın?');
-      } else if (text.includes('görüşürüz')) {
+      } else if (text.includes('görüşürüz') || text.includes('kapat')) {
         botSpeak('Görüşmek üzere!');
-        stopAll();
+        stopAll(); // Konuşmayı sonlandır
       } else {
         botSpeak('Üzgünüm, anlamadım. Lütfen tekrar eder misin?');
       }
     }
 
+    // Ses tanımayı durduran fonksiyon
     function stopRecognition() {
-      if(recognition) {
-        isListening = false;
-        recognition.stop();
+      if(recognition && isListening) { // Sadece aktifse durdur
+        isListening = false; // Dinleme durumunu pasif et
+        recognition.stop(); // SpeechRecognition'ı durdur
         appendToLog('Ses tanıma durdurma komutu gönderildi.');
+      } else if (recognition) {
+        // Eğer zaten durmuşsa bile stop komutu gönderilebilir (gereksiz olabilir)
+        recognition.stop();
+        appendToLog('Ses tanıma zaten durmuştu, yine de stop komutu gönderildi.');
       }
+      recognition = null; // Recognition objesini sıfırla
     }
 
+    // Kamera ve mikrofon akışlarını durduran fonksiyon
     function stopStreams() {
       if(audioStream) {
-        audioStream.getTracks().forEach(t => t.stop());
+        audioStream.getTracks().forEach(t => t.stop()); // Tüm ses parçalarını durdur
         audioStream = null;
         appendToLog('Ses akışı durduruldu.');
       }
       if(videoStream) {
-        videoStream.getTracks().forEach(t => t.stop());
+        videoStream.getTracks().forEach(t => t.stop()); // Tüm video parçalarını durdur
         videoStream = null;
-        video.srcObject = null; // Video objesini sıfırla
+        video.srcObject = null; // Video elementindeki akışı sıfırla
         appendToLog('Video akışı durduruldu.');
       }
-      video.style.display = 'none';
+      video.style.display = 'none'; // Video elementini gizle
     }
 
+    // Tüm aktif işlemleri durduran ana fonksiyon
     function stopAll() {
-      stopRecognition();
-      stopStreams();
+      appendToLog('Tüm konuşma ve akışları sonlandırılıyor...');
+      stopRecognition(); // Ses tanımayı durdur
+      stopStreams();     // Medya akışlarını durdur
       status.textContent = 'Konuşma sonlandırıldı.';
-      appendToLog('Tüm konuşma ve akışlar sonlandırıldı.');
-      // Buton durumlarını sıfırla
+      appendToLog('NovaTalk sonlandırıldı.');
+
+      // Buton durumlarını başlangıç haline getir
       btnAudioStart.disabled = false;
       btnAudioStop.disabled = true;
       btnVideoStart.disabled = false;
       btnVideoStop.disabled = true;
     }
 
+    // Sayfa yüklendiğinde başlangıç log mesajını göster
+    appendToLog("NovaTalk hazır. Lütfen bir konuşma türü başlatın.");
+
+    // Sesli Konuşma Başlat düğmesine tıklama olayı
     btnAudioStart.onclick = () => {
       stopAll(); // Önceki tüm işlemleri durdur
-      appendToLog('Sesli konuşma başlatılıyor...');
+      appendToLog('Sesli konuşma başlatma isteği.');
+      status.textContent = 'Mikrofon izni bekleniyor...';
+
+      // Sadece mikrofon erişimi iste
       navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
           audioStream = stream;
-          video.style.display = 'none';
+          video.style.display = 'none'; // Video alanını gizle
           status.textContent = 'Mikrofon izni verildi, dinleniyor...';
+          appendToLog('Mikrofon izni başarıyla alındı. Ses tanıma başlatılıyor.');
+
+          // Buton durumlarını güncelle
           btnAudioStart.disabled = true;
           btnAudioStop.disabled = false;
-          btnVideoStart.disabled = true;
+          btnVideoStart.disabled = true; // Görüntülü konuşma başlatılamazken
           btnVideoStop.disabled = true;
-          appendToLog('Mikrofon izni alındı, ses tanıma başlatılıyor.');
-          startRecognition();
+
+          startRecognition(); // Ses tanımayı başlat
         })
         .catch(err => {
           status.textContent = 'Mikrofon izni reddedildi: ' + err.message;
-          appendToLog('Hata: Mikrofon izni reddedildi. ' + err.message);
+          appendToLog('Hata: Mikrofon izni reddedildi veya erişilemiyor. Detay: ' + err.name + " - " + err.message);
+          console.error("getUserMedia (audio) error:", err);
           stopAll(); // Hata durumunda her şeyi sıfırla
         });
     };
 
+    // Sesli Konuşmayı Durdur düğmesine tıklama olayı
     btnAudioStop.onclick = () => {
       stopAll(); // Tüm akışları ve tanımayı durdur
       appendToLog('Sesli konuşma durduruldu.');
     };
 
+    // Görüntülü Konuşma Başlat düğmesine tıklama olayı
     btnVideoStart.onclick = () => {
       stopAll(); // Önceki tüm işlemleri durdur
-      appendToLog('Görüntülü konuşma başlatılıyor...');
+      appendToLog('Görüntülü konuşma başlatma isteği.');
+      status.textContent = 'Kamera ve mikrofon izni bekleniyor...';
+
+      // Hem kamera hem de mikrofon erişimi iste
       navigator.mediaDevices.getUserMedia({ video: true, audio: true })
         .then(stream => {
           videoStream = stream;
           video.srcObject = stream;
-          video.style.display = 'block';
+          video.style.display = 'block'; // Video alanını göster
           status.textContent = 'Kamera ve mikrofon izni verildi, dinleniyor...';
+          appendToLog('Kamera ve mikrofon izni başarıyla alındı. Ses tanıma başlatılıyor.');
+
+          // Buton durumlarını güncelle
           btnVideoStart.disabled = true;
           btnVideoStop.disabled = false;
-          btnAudioStart.disabled = true;
+          btnAudioStart.disabled = true; // Sesli konuşma başlatılamazken
           btnAudioStop.disabled = true;
-          appendToLog('Kamera ve mikrofon izni alındı, ses tanıma başlatılıyor.');
-          startRecognition();
+
+          startRecognition(); // Ses tanımayı başlat
         })
         .catch(err => {
           status.textContent = 'Kamera veya mikrofon izni reddedildi: ' + err.message;
-          appendToLog('Hata: Kamera veya mikrofon izni reddedildi. ' + err.message);
+          appendToLog('Hata: Kamera veya mikrofon izni reddedildi veya erişilemiyor. Detay: ' + err.name + " - " + err.message);
+          console.error("getUserMedia (video+audio) error:", err);
           stopAll(); // Hata durumunda her şeyi sıfırla
         });
     };
 
+    // Görüntülü Konuşmayı Durdur düğmesine tıklama olayı
     btnVideoStop.onclick = () => {
       stopAll(); // Tüm akışları ve tanımayı durdur
       appendToLog('Görüntülü konuşma durduruldu.');
