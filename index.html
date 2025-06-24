@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>NovaTalk - Sesli & Görüntülü Arama + Basılı Tut Konuş</title>
+<title>NovaTalk - Basılı Tut Konuş & Görüntülü Arama</title>
 <style>
   body {
     margin:0; font-family: Arial, sans-serif; background:#e0f7fa;
@@ -103,7 +103,7 @@
 </head>
 <body>
 
-<header>NovaTalk - Sesli & Görüntülü Arama + Basılı Tut Konuş</header>
+<header>NovaTalk - Basılı Tut Konuş & Görüntülü Arama</header>
 
 <div id="app">
   <div id="status">Arama başlatmak için butona basın.</div>
@@ -303,71 +303,68 @@
       talkButton.style.display = 'inline-block';
       status.textContent = "Arama başladı. Basılı tut konuş.";
       logMessage("📞 Görüntülü arama başladı.");
-    } catch(e) {
-      alert("Mikrofon veya kamera açılamadı.");
-      logMessage("❌ Medya başlatılamadı.");
+    } catch (e) {
+      alert("Kamera veya mikrofon açılamadı.");
+      logMessage("❌ Kamera veya mikrofon açılamadı.");
     }
   }
 
   // Aramayı bitir
   function endCall() {
     if(!isCalling) return;
+    isCalling = false;
+    status.textContent = "Arama sonlandırıldı.";
     if(stream){
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach(t => t.stop());
       stream = null;
     }
     videoLocal.style.display = 'none';
     avatar.style.display = 'none';
-    isCalling = false;
-    isTalking = false;
-    stopRecognition();
     btnStartCall.style.display = 'inline-block';
     btnEndCall.style.display = 'none';
     talkButton.style.display = 'none';
-    status.textContent = "Arama sonlandırıldı.";
-    logMessage("🔴 Arama sona erdi.");
+    stopRecognition();
+    logMessage("🔴 Arama sonlandırıldı.");
   }
 
-  // Basılı tut konuş - eventi
+  // Basılı tut konuşma mantığı
   talkButton.addEventListener('mousedown', () => {
     if(!isCalling) return;
-    if(isTalking) return;
-    isTalking = true;
-    talkButton.classList.add('active');
-    startRecognition();
+    if(!isTalking){
+      isTalking = true;
+      talkButton.classList.add('active');
+      talkButton.textContent = "🎙 Konuşuyorsun...";
+      startRecognition();
+    }
   });
+
+  talkButton.addEventListener('mouseup', () => {
+    if(!isCalling) return;
+    if(isTalking){
+      isTalking = false;
+      talkButton.classList.remove('active');
+      talkButton.textContent = "🎙 Basılı Tut Konuş";
+      stopRecognition();
+    }
+  });
+
+  // Dokunmatik cihazlar için touch events
   talkButton.addEventListener('touchstart', (e) => {
     e.preventDefault();
     talkButton.dispatchEvent(new Event('mousedown'));
-  }, {passive:false});
-
-  talkButton.addEventListener('mouseup', () => {
-    if(!isTalking) return;
-    isTalking = false;
-    talkButton.classList.remove('active');
-    stopRecognition();
   });
+
   talkButton.addEventListener('touchend', (e) => {
     e.preventDefault();
     talkButton.dispatchEvent(new Event('mouseup'));
   });
 
-  // İzin butonu
-  permissionButton.addEventListener('click', () => {
-    requestPermissions();
-  });
+  // Butonlar eventleri
+  btnStartCall.addEventListener('click', startCall);
+  btnEndCall.addEventListener('click', endCall);
+  permissionButton.addEventListener('click', requestPermissions);
 
-  // Arama başlat butonu
-  btnStartCall.addEventListener('click', () => {
-    startCall();
-  });
-
-  // Arama bitir butonu
-  btnEndCall.addEventListener('click', () => {
-    endCall();
-  });
-
-  // Başlangıçta izinleri kontrol et
+  // İlk izin kontrolü
   checkPermissions();
 
 </script>
