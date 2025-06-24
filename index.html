@@ -9,95 +9,102 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       text-align: center;
       padding: 30px;
-      background: linear-gradient(135deg, #e0f7fa 0%, #bbdefb 100%); /* Hafif mavi gradient */
-      color: #333;
+      /* Daha dinamik ve canlı bir arka plan gradienti */
+      background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); 
+      color: #2c3e50; /* Koyu gri tonu */
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       margin: 0;
+      overflow-x: hidden; /* Yatay kaydırmayı engelle */
     }
     h1 {
-      color: #0d47a1; /* Koyu mavi başlık */
+      color: #2980b9; /* Canlı mavi başlık rengi */
       margin-bottom: 25px;
-      font-size: 2.5em;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+      font-size: 2.8em; /* Daha büyük başlık */
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2); /* Daha belirgin gölge */
+      letter-spacing: 1px;
     }
     div {
       margin-bottom: 15px;
     }
     button {
-      font-size: 1.1em;
-      padding: 14px 30px;
-      margin: 10px;
-      border-radius: 25px; /* Daha yuvarlak butonlar */
+      font-size: 1.15em; /* Daha büyük font */
+      padding: 15px 35px; /* Daha geniş padding */
+      margin: 12px;
+      border-radius: 30px; /* Daha da yuvarlak butonlar */
       border: none;
-      background-color: #26a69a; /* Turkuaz tonu */
+      background-color: #27ae60; /* Yeşil tonu */
       color: white;
       cursor: pointer;
-      min-width: 180px;
-      transition: background-color 0.3s ease, transform 0.1s ease;
+      min-width: 200px; /* Daha geniş butonlar */
+      transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
       user-select: none;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-      letter-spacing: 0.5px;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.3); /* Daha belirgin gölge */
+      letter-spacing: 0.8px;
+      font-weight: 600; /* Kalın font */
     }
     button:hover {
-      background-color: #00897b; /* Daha koyu turkuaz */
-      transform: translateY(-2px); /* Hafif yukarı kalkma efekti */
+      background-color: #2ecc71; /* Hover'da hafif açılan yeşil */
+      transform: translateY(-3px); /* Daha belirgin yukarı kalkma efekti */
+      box-shadow: 0 8px 16px rgba(0,0,0,0.4); /* Hover'da daha koyu gölge */
     }
     button:active {
       transform: translateY(0); /* Basıldığında eski yerine dönme */
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      box-shadow: 0 3px 6px rgba(0,0,0,0.2); /* Basıldığında gölgenin küçülmesi */
     }
     button.stop {
-      background-color: #ef5350; /* Kırmızı tonu */
+      background-color: #e74c3c; /* Kırmızı tonu */
     }
     button.stop:hover {
-      background-color: #e53935; /* Daha koyu kırmızı */
+      background-color: #c0392b; /* Daha koyu kırmızı */
     }
     button:disabled {
-      background-color: #bdbdbd; /* Gri ve pasif görünüm */
+      background-color: #bdc3c7; /* Açık gri ve pasif görünüm */
       cursor: not-allowed;
       box-shadow: none;
       transform: none;
+      opacity: 0.7; /* Hafif şeffaflık */
     }
     video {
-      margin-top: 25px;
-      max-width: 400px; /* Daha geniş video alanı */
+      margin-top: 30px;
+      max-width: 450px; /* Daha geniş video alanı */
       width: 90%;
-      border-radius: 15px;
-      box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+      border-radius: 20px; /* Daha yuvarlak köşeler */
+      box-shadow: 0 10px 20px rgba(0,0,0,0.4); /* Daha belirgin gölge */
       display: none;
-      background-color: #000; /* Video alanı boşken siyah zemin */
-      border: 4px solid #42a5f5; /* Mavi çerçeve */
+      background-color: #000;
+      border: 5px solid #3498db; /* Canlı mavi çerçeve */
     }
     #status {
-      margin-top: 25px;
-      font-size: 1.1em;
-      color: #1a237e; /* Koyu lacivert */
+      margin-top: 30px;
+      font-size: 1.2em; /* Daha büyük font */
+      color: #2c3e50; /* Koyu metin rengi */
       font-weight: bold;
-      min-height: 25px;
+      min-height: 30px;
+      text-shadow: 0 1px 1px rgba(255,255,255,0.5); /* Hafif metin gölgesi */
     }
     #log {
-      margin-top: 20px;
-      max-width: 400px;
+      margin-top: 25px;
+      max-width: 450px;
       width: 90%;
       margin-left: auto;
       margin-right: auto;
-      background: #ffffff; /* Beyaz log kutusu */
-      padding: 15px;
-      border-radius: 10px;
-      font-size: 0.95em;
+      background: #ecf0f1; /* Açık gri log kutusu */
+      padding: 20px;
+      border-radius: 15px; /* Daha yuvarlak köşeler */
+      font-size: 1em; /* Daha standart font boyutu */
       white-space: pre-wrap;
-      min-height: 100px; /* Daha geniş log alanı */
-      color: #212121; /* Koyu gri metin */
-      border: 1px solid #90caf9; /* Açık mavi çerçeve */
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      min-height: 120px; /* Daha yüksek log alanı */
+      color: #34495e; /* Koyu metin rengi */
+      border: 1px solid #bdc3c7; /* Gri kenarlık */
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2); /* Belirgin gölge */
       overflow-y: auto;
-      max-height: 200px; /* Daha yüksek log alanı */
+      max-height: 250px; /* Daha yüksek log alanı */
       text-align: left;
-      line-height: 1.4;
+      line-height: 1.5;
     }
   </style>
 </head>
@@ -125,13 +132,13 @@
     const btnVideoStart = document.getElementById('btnVideoStart');
     const btnVideoStop = document.getElementById('btnVideoStop');
     const video = document.getElementById('video');
-    const statusDiv = document.getElementById('status'); // 'status' kelimesi JS'de çakışabilir, div olarak değiştirdim
+    const statusDiv = document.getElementById('status');
     const logDiv = document.getElementById('log');
 
     let recognition = null;
     let audioStream = null;
     let videoStream = null;
-    let isListening = false; // SpeechRecognition'ın manuel olarak mı, yoksa otomatik mi yeniden başlatıldığını kontrol eder.
+    let isListening = false;
 
     // Loglama fonksiyonu: Mesajları hem HTML'e hem de konsola yazdırır
     function appendToLog(message) {
@@ -159,12 +166,12 @@
       }
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'tr-TR';
-      utterance.pitch = 1; // Ses perdesi (pitch) ayarı
-      utterance.rate = 1;  // Konuşma hızı ayarı
-      utterance.volume = 1; // Ses yüksekliği (volume) ayarı
+      utterance.pitch = 1;
+      utterance.rate = 1;
+      utterance.volume = 1;
       utterance.onend = () => {
         appendToLog("Bot konuşması bitti.");
-        // Bot konuşması bittikten sonra tekrar dinlemeye devam et
+        // Bot konuşması bittikten sonra tekrar dinlemeyi başlat
         if (isListening && recognition && recognition.start) {
             try {
                 recognition.start();
@@ -259,18 +266,10 @@
 
       recognition.onend = () => {
         appendToLog('Ses tanıma sona erdi.');
-        if(isListening) { // Eğer isListening hala true ise, otomatik tekrar başlat
-          appendToLog('Otomatik tekrar dinleme başlatılıyor...');
-          try {
-            recognition.start(); // Otomatik tekrar başlat
-            updateStatus('Dinlemeye devam ediliyor...');
-          } catch (e) {
-            appendToLog(`Tekrar başlatılırken hata: ${e.message}`);
-            console.error("Recognition re-start error:", e);
-            updateStatus('Dinleme hatası oluştu. Lütfen tekrar başlatın.');
-            isListening = false;
-            stopRecognition(); // Hata durumunda tekrar denemeyi durdur
-          }
+        if(isListening) { // Eğer isListening hala true ise, bot konuşması bittikten sonra tekrar başlayacak.
+          // Bu kısım botSpeak içindeki onend callback'ine taşındı.
+          // Burada sadece durum güncellenebilir eğer bot konuşması beklenmiyorsa.
+          updateStatus('Dinlemeye devam ediliyor (konuşma bekleniyor)...');
         } else {
           updateStatus('Ses tanıma durdu.');
           appendToLog('Ses tanıma kalıcı olarak durduruldu.');
@@ -305,9 +304,6 @@
       } else if (text.includes('bugün günlerden ne') || text.includes('tarih ne')) {
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         replyText = `Bugün ${now.toLocaleDateString('tr-TR', options)}.`;
-      } else if (text.includes('hava durumu')) {
-        // BURAYA GERÇEK BİR HAVA DURUMU API ENTEGRASYONU YAPILABİLİR
-        replyText = 'Üzgünüm, şu an için hava durumu bilgisi veremiyorum. Bu özellik geliştirme aşamasında.';
       } else if (text.includes('yardım et') || text.includes('ne yapabilirsin')) {
         replyText = 'Size saati söyleyebilir, günün tarihini belirtebilir veya sadece sohbet edebilirim. Ne sormak istersiniz?';
       } else if (text.includes('güle güle') || text.includes('görüşürüz') || text.includes('kapat') || text.includes('bitir')) {
@@ -408,7 +404,7 @@
 
     // Görüntülü Konuşma Başlat düğmesine tıklama olayı
     btnVideoStart.onclick = () => {
-      stopAll(); // Önceki tüm işlemleri durdur
+      stopAll();
       appendToLog('Görüntülü konuşma başlatma isteği.');
       updateStatus('Kamera ve mikrofon izni bekleniyor...');
 
@@ -425,13 +421,13 @@
           btnAudioStart.disabled = true;
           btnAudioStop.disabled = true;
 
-          startRecognition(); // Ses tanımayı başlat
+          startRecognition();
         })
         .catch(err => {
           updateStatus('Kamera veya mikrofon izni reddedildi: ' + err.message);
           appendToLog('Hata: Kamera veya mikrofon izni reddedildi veya erişilemiyor. Detay: ' + err.name + " - " + err.message);
           console.error("getUserMedia (video+audio) error:", err);
-          stopAll(); // Hata durumunda her şeyi sıfırla
+          stopAll();
           alert('Kamera veya mikrofon izni reddedildi veya kullanılamıyor. Lütfen tarayıcı ayarlarınızı kontrol edin ve tekrar deneyin.');
         });
     };
