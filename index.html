@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>NovaTalk - Sesli & Görüntülü Sohbet + Nesne Tanıma</title>
+  <title>NovaTalk - WhatsApp Stili Arama</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
@@ -48,14 +48,39 @@
       margin-left: auto;
       margin-right: auto;
     }
+    #aramaEkrani {
+      display: none;
+      background: #1a1a1a;
+      color: white;
+      padding: 20px;
+      border-radius: 20px;
+      max-width: 300px;
+      margin: 40px auto;
+    }
+    #aramaEkrani img {
+      width: 100px;
+      border-radius: 50%;
+      margin-bottom: 10px;
+    }
+    .nokta {
+      animation: dot 1s infinite;
+    }
+    @keyframes dot {
+      0% { opacity: 0; }
+      50% { opacity: 1; }
+      100% { opacity: 0; }
+    }
   </style>
 </head>
 <body><h1>NovaTalk 🤖</h1>
 <button onclick="temaDegistir()">🎨 Tema Değiştir</button>
-<button onclick="baslatSesli()">🎤 Sesli Konuş</button>
-<button onclick="durdurSesli()">🛑 Konuşmayı Durdur</button>
-<button onclick="baslatGoruntu()">🎥 Görüntü + Nesne Tanıma</button>
-<button onclick="durdurGoruntu()">📴 Görüntüğü Durdur</button><video id="video" autoplay muted playsinline></video> <canvas id="canvas"></canvas>
+<button onclick="aramaBaslat('sesli')">📞 Sesli Ara</button>
+<button onclick="aramaBaslat('goruntulu')">🎥 Görüntülü Ara</button>
+<button onclick="durdurArama()">🟥 Aramayı Durdur</button><div id="aramaEkrani">
+  <img src="https://cdn-icons-png.flaticon.com/512/4712/4712109.png" alt="ChatNova"/>
+  <h2>ChatNova</h2>
+  <p id="arananDurum">Aranıyor<span class="nokta">...</span></p>
+</div><video id="video" autoplay muted playsinline style="display:none;"></video> <canvas id="canvas"></canvas>
 
 <div id="log">📝 Konuşma logu buraya gelecek...</div>
 <div id="guvenlik">
@@ -68,6 +93,8 @@ const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 ctx = canvas.getContext('2d');
 const log = document.getElementById('log');
+const aramaEkrani = document.getElementById('aramaEkrani');
+const arananDurum = document.getElementById('arananDurum');
 
 function botKonus(text) {
   const utter = new SpeechSynthesisUtterance(text);
@@ -78,6 +105,16 @@ function botKonus(text) {
 function logla(yazi) {
   log.textContent += `\n${yazi}`;
   log.scrollTop = log.scrollHeight;
+}
+
+function aramaBaslat(tip) {
+  aramaEkrani.style.display = 'block';
+  arananDurum.textContent = 'ChatNova aranıyor...';
+  setTimeout(() => {
+    aramaEkrani.style.display = 'none';
+    if (tip === 'sesli') baslatSesli();
+    else if (tip === 'goruntulu') baslatGoruntu();
+  }, 3000);
 }
 
 function baslatSesli() {
@@ -97,9 +134,13 @@ function baslatSesli() {
   }).catch(() => alert('Mikrofon izni gerek!'));
 }
 
-function durdurSesli() {
+function durdurArama() {
   if (recognition) recognition.stop();
-  botKonus('Konuşma durduruldu.');
+  if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+  video.style.display = 'none';
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  aramaEkrani.style.display = 'none';
+  botKonus('Arama sonlandırıldı.');
 }
 
 function botCevapla(text) {
@@ -146,15 +187,6 @@ function tanimayaBasla() {
     requestAnimationFrame(loop);
   }
   loop();
-}
-
-function durdurGoruntu() {
-  if (videoStream) {
-    videoStream.getTracks().forEach(t => t.stop());
-    videoStream = null;
-    video.style.display = 'none';
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-  }
 }
 
 function temaDegistir() {
