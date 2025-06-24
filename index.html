@@ -23,6 +23,18 @@
       color: white;
       cursor: pointer;
     }
+    .end-call-btn {
+      background-color: #d32f2f;
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 25px;
+      font-size: 16px;
+      border-radius: 40px;
+      display: none;
+      z-index: 1000;
+    }
     video, canvas {
       margin-top: 20px;
       width: 300px;
@@ -74,9 +86,10 @@
 </head>
 <body><h1>NovaTalk 🤖</h1>
 <button onclick="temaDegistir()">🎨 Tema Değiştir</button>
-<button onclick="aramaBaslat('sesli')">📞 Sesli Ara</button>
-<button onclick="aramaBaslat('goruntulu')">🎥 Görüntülü Ara</button>
-<button onclick="durdurArama()">🟥 Aramayı Durdur</button><div id="aramaEkrani">
+<button onclick="aramaBaslat('sesli')" id="btnSesli">📞 Sesli Ara</button>
+<button onclick="aramaBaslat('goruntulu')" id="btnGoruntulu">🎥 Görüntülü Ara</button><button class="end-call-btn" onclick="durdurArama()" id="btnDurdur">🟥 Aramayı Sonlandır</button>
+
+<div id="aramaEkrani">
   <img src="https://cdn-icons-png.flaticon.com/512/4712/4712109.png" alt="ChatNova"/>
   <h2>ChatNova</h2>
   <p id="arananDurum">Aranıyor<span class="nokta">...</span></p>
@@ -88,13 +101,16 @@
   NovaTalk cihaz üzerinde çalışır. Ses ve görüntüler kaydedilmez veya gönderilmez.<br>
   Kimse sizi izleyemez ya da dinleyemez. Tamamen gizlidir.
 </div><script>
-let recognition, model, ctx, videoStream;
+let recognition, model, ctx, videoStream, aramaAktif = false;
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 ctx = canvas.getContext('2d');
 const log = document.getElementById('log');
 const aramaEkrani = document.getElementById('aramaEkrani');
 const arananDurum = document.getElementById('arananDurum');
+const btnDurdur = document.getElementById('btnDurdur');
+const btnSesli = document.getElementById('btnSesli');
+const btnGoruntulu = document.getElementById('btnGoruntulu');
 
 function botKonus(text) {
   const utter = new SpeechSynthesisUtterance(text);
@@ -108,8 +124,14 @@ function logla(yazi) {
 }
 
 function aramaBaslat(tip) {
+  if (aramaAktif) return;
+  aramaAktif = true;
   aramaEkrani.style.display = 'block';
+  btnDurdur.style.display = 'block';
   arananDurum.textContent = 'ChatNova aranıyor...';
+  btnSesli.disabled = true;
+  btnGoruntulu.disabled = true;
+
   setTimeout(() => {
     aramaEkrani.style.display = 'none';
     if (tip === 'sesli') baslatSesli();
@@ -137,9 +159,14 @@ function baslatSesli() {
 function durdurArama() {
   if (recognition) recognition.stop();
   if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+  videoStream = null;
   video.style.display = 'none';
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   aramaEkrani.style.display = 'none';
+  btnDurdur.style.display = 'none';
+  btnSesli.disabled = false;
+  btnGoruntulu.disabled = false;
+  aramaAktif = false;
   botKonus('Arama sonlandırıldı.');
 }
 
