@@ -2,335 +2,120 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8" />
-<title>NovaTalk - Sesli & Görüntülü Arama</title>
+<title>NovaTalk - Google AI Sesli Sohbet</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
-  body {
-    background-color: #111;
-    color: #eee;
-    font-family: Arial, sans-serif;
-    text-align: center;
-    padding: 20px;
-  }
-  button {
-    font-size: 16px;
-    margin: 10px;
-    padding: 12px 24px;
-    border-radius: 25px;
-    border: none;
-    cursor: pointer;
-    color: white;
-    user-select: none;
-  }
-  #btnSesli {
-    background-color: #4caf50;
-  }
-  #btnGoruntulu {
-    background-color: #2196f3;
-  }
-  #btnDurdur {
-    background-color: #d32f2f;
-    position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 14px 30px;
-    font-size: 18px;
-    border-radius: 40px;
-    display: none;
-    z-index: 9999;
-  }
-  #aramaEkrani {
-    display: none;
-    background: #222;
-    color: white;
-    padding: 25px;
-    border-radius: 20px;
-    max-width: 320px;
-    margin: 40px auto;
-    box-shadow: 0 0 15px #000;
-  }
-  #aramaEkrani img {
-    width: 100px;
-    border-radius: 50%;
-    margin-bottom: 12px;
-  }
-  .nokta {
-    animation: dot 1s infinite;
-  }
-  @keyframes dot {
-    0%, 100% { opacity: 0; }
-    50% { opacity: 1; }
-  }
-  video {
-    margin-top: 20px;
-    max-width: 320px;
-    border-radius: 12px;
-    display: none;
-  }
-  #log {
-    margin-top: 20px;
-    background: #222;
-    padding: 15px;
-    border-radius: 15px;
-    max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
-    white-space: pre-wrap;
-    min-height: 100px;
-    font-size: 15px;
-  }
-  #guvenlik {
-    margin-top: 40px;
-    font-size: 14px;
-    color: #aaa;
-    border-top: 1px solid #444;
-    padding-top: 20px;
-    max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  #copyright {
-    margin-top: 40px;
-    font-size: 13px;
-    color: #888;
-    user-select: none;
-    padding: 10px 0;
-    border-top: 1px solid #444;
-  }
+  body { font-family: Arial, sans-serif; padding: 20px; background:#121212; color:#eee; text-align:center;}
+  button { font-size:18px; padding:15px 30px; margin:10px; border:none; border-radius:20px; cursor:pointer;}
+  #btnStart { background:#4caf50; color:#fff;}
+  #btnStop { background:#d32f2f; color:#fff; display:none;}
+  #log { background:#222; padding:15px; margin-top:20px; max-width:600px; margin-left:auto; margin-right:auto; border-radius:15px; min-height:100px; white-space:pre-wrap;}
 </style>
 </head>
 <body>
 
-<h1>NovaTalk 🤖</h1>
+<h1>NovaTalk - Google AI Sesli Sohbet</h1>
+<button id="btnStart">🎤 Konuşmaya Başla</button>
+<button id="btnStop">🛑 Konuşmayı Durdur</button>
 
-<button id="btnSesli">📞 Sesli Ara</button>
-<button id="btnGoruntulu">🎥 Görüntülü Ara</button>
-<button id="btnDurdur">🟥 Aramayı Sonlandır</button>
-
-<div id="aramaEkrani">
-  <img src="https://cdn-icons-png.flaticon.com/512/4712/4712109.png" alt="ChatNova" />
-  <h2>ChatNova</h2>
-  <p id="arananDurum">Aranıyor<span class="nokta">...</span></p>
-</div>
-
-<video id="video" autoplay muted playsinline></video>
-
-<div id="log">📝 Konuşma logu buraya gelecek...</div>
-
-<div id="guvenlik">
-  🔒 <strong>Güvenlik Bilgisi:</strong><br>
-  NovaTalk cihaz üzerinde çalışır.<br>
-  Ses ve görüntüler kaydedilmez veya gönderilmez.<br>
-  Kimse sizi izleyemez ya da dinleyemez.<br>
-  Tamamen gizlidir.
-</div>
-
-<div id="copyright">
-  &copy; 2025 NovaTalk - Tüm hakları saklıdır.<br>
-  Bu kodun izinsiz kopyalanması, çoğaltılması ve yayılması yasaktır.
-</div>
+<div id="log">Loglar burada gösterilecek...</div>
 
 <script>
-  const btnSesli = document.getElementById('btnSesli');
-  const btnGoruntulu = document.getElementById('btnGoruntulu');
-  const btnDurdur = document.getElementById('btnDurdur');
-  const aramaEkrani = document.getElementById('aramaEkrani');
-  const arananDurum = document.getElementById('arananDurum');
-  const video = document.getElementById('video');
-  const log = document.getElementById('log');
+const btnStart = document.getElementById('btnStart');
+const btnStop = document.getElementById('btnStop');
+const log = document.getElementById('log');
 
-  let recognition = null;
-  let videoStream = null;
-  let aramaAktif = false;
-  let botKonusuyor = false;
-  let sessizlikTimeout = null;
+let recognition;
+let recognizing = false;
 
-  function botKonus(text) {
-    if (botKonusuyor) {
-      speechSynthesis.cancel();
-    }
-    botKonusuyor = true;
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = 'tr-TR';
-    utter.rate = 1;
-    utter.pitch = 1;
-    utter.onend = () => { botKonusuyor = false; };
-    speechSynthesis.speak(utter);
-    logaEkle('🤖 ChatNova: ' + text);
+btnStart.onclick = () => {
+  if (recognizing) return;
+  startRecognition();
+};
+
+btnStop.onclick = () => {
+  if (!recognizing) return;
+  stopRecognition();
+};
+
+function logYaz(mesaj) {
+  log.textContent += '\n' + mesaj;
+  log.scrollTop = log.scrollHeight;
+}
+
+function startRecognition() {
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    alert('Tarayıcınız ses tanımayı desteklemiyor!');
+    return;
   }
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.lang = 'tr-TR';
+  recognition.interimResults = false;
+  recognition.continuous = true;
 
-  function logaEkle(text) {
-    log.textContent += '\n' + text;
-    log.scrollTop = log.scrollHeight;
+  recognition.onstart = () => {
+    recognizing = true;
+    btnStart.style.display = 'none';
+    btnStop.style.display = 'inline-block';
+    logYaz('🎙️ Dinleniyor...');
+  };
+
+  recognition.onresult = async (event) => {
+    const lastIndex = event.results.length -1;
+    const text = event.results[lastIndex][0].transcript.trim();
+    logYaz('👤 Sen: ' + text);
+    // Google AI Chat API'ye gönderip cevap al
+    const cevap = await googleChatApiSorgula(text);
+    botKonus(cevap);
+  };
+
+  recognition.onerror = (event) => {
+    logYaz('⚠️ Hata: ' + event.error);
+  };
+
+  recognition.onend = () => {
+    recognizing = false;
+    btnStart.style.display = 'inline-block';
+    btnStop.style.display = 'none';
+    logYaz('🛑 Dinleme durdu.');
+  };
+
+  recognition.start();
+}
+
+function stopRecognition() {
+  if (recognition) {
+    recognition.stop();
   }
+}
 
-  function aramaBaslat(tip) {
-    if (aramaAktif) return;
-    aramaAktif = true;
-    btnSesli.disabled = true;
-    btnGoruntulu.disabled = true;
-    btnDurdur.style.display = 'block';
-    aramaEkrani.style.display = 'block';
-    arananDurum.textContent = 'ChatNova aranıyor';
+function botKonus(text) {
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'tr-TR';
+  speechSynthesis.speak(utter);
+  logYaz('🤖 ChatNova: ' + text);
+}
 
-    setTimeout(() => {
-      aramaEkrani.style.display = 'none';
-      if (tip === 'sesli') baslatSesli();
-      else if (tip === 'goruntulu') baslatGoruntulu();
-    }, 3000);
-  }
-
-  function baslatSesli() {
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(stream => {
-        video.style.display = 'none';
-        if (videoStream) {
-          videoStream.getTracks().forEach(t => t.stop());
-          videoStream = null;
-        }
-        if (recognition) recognition.stop();
-
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-          alert('Tarayıcınız ses tanımayı desteklemiyor!');
-          aramaSonlandir();
-          return;
-        }
-        recognition = new SpeechRecognition();
-        recognition.lang = 'tr-TR';
-        recognition.continuous = true;
-        recognition.interimResults = false;
-
-        recognition.onresult = event => {
-          clearTimeout(sessizlikTimeout);
-          const last = event.results.length - 1;
-          const text = event.results[last][0].transcript.trim();
-          logaEkle('👤 Kullanıcı: ' + text);
-          botCevapla(text);
-          sessizlikTimeout = setTimeout(() => {
-            botKonus('Hadi dostum, konuşacak mısın?');
-          }, 5000);
-        };
-
-        recognition.onerror = event => {
-          logaEkle('⚠️ Ses tanıma hatası: ' + event.error);
-        };
-
-        recognition.onend = () => {
-          if (aramaAktif) {
-            recognition.start();
-          }
-        };
-
-        recognition.start();
-        botKonus('Selam! Seni dinliyorum...');
-        sessizlikTimeout = setTimeout(() => {
-          botKonus('Hadi dostum, konuşacak mısın?');
-        }, 5000);
-      })
-      .catch(() => {
-        alert('Mikrofon izni gerekiyor!');
-        aramaSonlandir();
-      });
-  }
-
-  function baslatGoruntulu() {
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-      .then(stream => {
-        videoStream = stream;
-        video.srcObject = stream;
-        video.style.display = 'block';
-
-        if (recognition) recognition.stop();
-
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-          alert('Tarayıcınız ses tanımayı desteklemiyor!');
-          aramaSonlandir();
-          return;
-        }
-
-        recognition = new SpeechRecognition();
-        recognition.lang = 'tr-TR';
-        recognition.continuous = true;
-        recognition.interimResults = false;
-
-        recognition.onresult = event => {
-          clearTimeout(sessizlikTimeout);
-          const last = event.results.length - 1;
-          const text = event.results[last][0].transcript.trim();
-          logaEkle('👤 Kullanıcı: ' + text);
-          botCevapla(text);
-          sessizlikTimeout = setTimeout(() => {
-            botKonus('Hadi dostum, konuşacak mısın?');
-          }, 5000);
-        };
-
-        recognition.onerror = event => {
-          logaEkle('⚠️ Ses tanıma hatası: ' + event.error);
-        };
-
-        recognition.onend = () => {
-          if (aramaAktif) {
-            recognition.start();
-          }
-        };
-
-        recognition.start();
-        botKonus('Selam! Seni dinliyorum...');
-        sessizlikTimeout = setTimeout(() => {
-          botKonus('Hadi dostum, konuşacak mısın?');
-        }, 5000);
-      })
-      .catch(() => {
-        alert('Kamera ve mikrofon izni gerekiyor!');
-        aramaSonlandir();
-      });
-  }
-
-  function botCevapla(text) {
-    const lower = text.toLowerCase();
-    if (lower.includes('merhaba')) botKonus('Merhaba! Sana nasıl yardımcı olabilirim?');
-    else if (lower.includes('nasılsın')) botKonus('İyiyim, teşekkür ederim! Sen nasılsın?');
-    else if (lower.includes('görüşürüz') || lower.includes('hoşçakal')) {
-      botKonus('Görüşmek üzere!');
-      aramaSonlandir();
-    }
-    else botKonus('Üzgünüm, bunu anlayamadım. Lütfen tekrar eder misin?');
-  }
-
-  function aramaSonlandir() {
-    aramaAktif = false;
-    btnSesli.disabled = false;
-    btnGoruntulu.disabled = false;
-    btnDurdur.style.display = 'none';
-    aramaEkrani.style.display = 'none';
-    if (recognition) {
-      recognition.onresult = null;
-      recognition.onerror = null;
-      recognition.onend = null;
-      recognition.stop();
-      recognition = null;
-    }
-    if (videoStream) {
-      videoStream.getTracks().forEach(t => t.stop());
-      videoStream = null;
-    }
-    video.style.display = 'none';
-    clearTimeout(sessizlikTimeout);
-    botKonus('Arama sonlandırıldı.');
-  }
-
-  btnSesli.onclick = () => aramaBaslat('sesli');
-  btnGoruntulu.onclick = () => aramaBaslat('goruntulu');
-  btnDurdur.onclick = aramaSonlandir;
-
-  // Telif hakkı kopyalama engelleme ve uyarı
-  document.addEventListener('copy', (e) => {
-    e.preventDefault();
-    alert('⚠️ NovaTalk kodları ve içeriği telif hakkı ile korunmaktadır. İzinsiz kopyalamak yasaktır!');
+// Google Chat API çağrısı - NOT: Burada gerçek API çağrısı yapılmıyor, bunu backend üzerinden yapmalısın!
+// Aşağıda örnek mock cevap var:
+async function googleChatApiSorgula(metin) {
+  logYaz('... Google AI sorgulanıyor ...');
+  // Burada fetch ile kendi backend'inize veya Google AI endpointine POST yapacaksınız.
+  // Örnek: 
+  /*
+  const response = await fetch('https://your-backend.com/google-chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer API_KEY' },
+    body: JSON.stringify({ message: metin }),
   });
+  const data = await response.json();
+  return data.reply;
+  */
+  // Şimdilik sabit cevap dönüyorum:
+  return new Promise(resolve => setTimeout(() => resolve('Merhaba, ben NovaTalk! Şu an gerçek API bağlanmadı.'), 1000));
+}
+
 </script>
 
 </body>
