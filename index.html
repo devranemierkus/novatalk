@@ -61,10 +61,10 @@
       background-color: #c0392b;
     }
     button#btnRequestPermissions {
-      background-color: #3498db; /* Mavi tonu */
+      background-color: #3498db;
     }
     button#btnRequestPermissions:hover {
-      background-color: #2980b9; /* Daha koyu mavi */
+      background-color: #2980b9;
     }
     button:disabled {
       background-color: #bdc3c7;
@@ -147,8 +147,31 @@
     let recognition = null;
     let audioStream = null;
     let videoStream = null;
-    let isListening = false; // SpeechRecognition'ın manuel olarak mı, yoksa otomatik mi yeniden başlatıldığını kontrol eder.
+    let isListening = false;
     const RESTART_DELAY = 2000; // 2 saniye gecikme
+
+    let selectedVoice = null; // Seçilen ses nesnesini tutacak değişken
+
+    // Sesler yüklendiğinde en iyi Türkçe sesi bulalım
+    window.speechSynthesis.onvoiceschanged = () => {
+        const voices = window.speechSynthesis.getVoices();
+        // Türkçe sesleri filtrele
+        const turkishVoices = voices.filter(voice => voice.lang.startsWith('tr'));
+        appendToLog(`Bulunan Türkçe sesler: ${turkishVoices.map(v => v.name).join(', ')}`);
+
+        // Daha doğal bir ses bulmaya çalış (örneğin "Google Turkish" veya "Microsoft" sesleri)
+        // Eğer bulamazsa, ilk Türkçe sesi kullanır.
+        selectedVoice = turkishVoices.find(voice => voice.name.includes('Google') && voice.name.includes('Turkish')) ||
+                         turkishVoices.find(voice => voice.name.includes('Microsoft') && voice.name.includes('Turkish')) ||
+                         turkishVoices[0]; // Hiçbiri bulunamazsa ilk Türkçe sesi kullan
+
+        if (selectedVoice) {
+            appendToLog(`NovaTalk için seçilen ses: "${selectedVoice.name}"`);
+        } else {
+            appendToLog('Uyarı: Hiç Türkçe ses bulunamadı. Lütfen sisteminizin Türkçe ses paketlerini kontrol edin.');
+        }
+    };
+
 
     // Loglama fonksiyonu: Mesajları hem HTML'e hem de konsola yazdırır
     function appendToLog(message) {
@@ -175,18 +198,25 @@
         speechSynthesis.cancel();
       }
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'tr-TR';
+      utterance.lang = 'tr-TR'; // Dil ayarı hala önemli
       utterance.pitch = 1;
       utterance.rate = 1;
       utterance.volume = 1;
+
+      // Eğer bir ses seçildiyse, onu kullan
+      if (selectedVoice) {
+          utterance.voice = selectedVoice;
+      } else {
+          appendToLog("Uyarı: 'selectedVoice' ayarlanmadı, varsayılan Türkçe ses kullanılacak.");
+      }
+
       utterance.onend = () => {
         appendToLog("Bot konuşması bitti.");
-        // Bot konuşması bittikten sonra 2 saniye bekleyip tekrar dinlemeyi başlat
-        if (isListening) { // isListening true ise, yani asistan hala aktifse
+        if (isListening) {
             updateStatus(`NovaTalk konuşmasını bitirdi. ${RESTART_DELAY / 1000} saniye içinde tekrar dinlemeye başlayacağım...`);
             appendToLog(`Bekleniyor: ${RESTART_DELAY / 1000} saniye sonra tekrar dinleme başlayacak.`);
             setTimeout(() => {
-                if (isListening && recognition && recognition.start) { // Tekrar kontrol et
+                if (isListening && recognition && recognition.start) {
                     try {
                         recognition.start();
                         updateStatus('Dinlemeye devam ediyorum... Mikrofon açık.');
@@ -205,14 +235,33 @@
         appendToLog(`Bot konuşma hatası: ${event.error}`);
         console.error("SpeechSynthesis error:", event.error);
         updateStatus('Bot konuşurken hata oluştu.');
+        // Hata durumunda da dinlemeye devam etmeye çalış
+        if (isListening && recognition && recognition.start) {
+            updateStatus('Bot konuşma hatası. Dinlemeye devam ediyorum...');
+            setTimeout(() => {
+                try {
+                    recognition.start();
+                } catch (e) {
+                    appendToLog(`Bot konuşma hatası sonrası dinleme başlatılırken hata: ${e.message}`);
+                    console.error("Recognition re-start after botSpeak error:", e);
+                }
+            }, RESTART_DELAY);
+        }
       };
-      speechSynthesis.speak(utterance);
-      appendToLog(`NovaTalk söyledi: ${text}`);
+      
+      // Sesin gerçekten oynatıldığından emin olmak için bir kontrol
+      try {
+        speechSynthesis.speak(utterance);
+        appendToLog(`NovaTalk söyledi: ${text}`);
+      } catch (e) {
+        appendToLog(`SpeechSynthesis.speak() çağrılırken hata: ${e.message}`);
+        console.error("SpeechSynthesis speak call error:", e);
+        updateStatus('Bot konuşma başlatılamadı. Tarayıcı ses motoru hatası.');
+      }
     }
 
     // Ses tanımayı başlatan fonksiyon
     function startRecognition() {
-      // Tarayıcı uyumluluk kontrolü (bu kontrolü izin almadan önce de yapabiliriz)
       if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
         updateStatus('Tarayıcınız ses tanımayı desteklemiyor! Lütfen Chrome gibi destekleyen bir tarayıcı kullanın.');
         appendToLog('Hata: Tarayıcı ses tanımayı desteklemiyor.');
@@ -225,19 +274,18 @@
       recognition.lang = 'tr-TR';
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
-      recognition.continuous = false; // Konuşma durduktan sonra otomatik olarak durdur
+      recognition.continuous = false;
 
       recognition.onstart = () => {
         updateStatus('Konuşmanı dinliyorum... Mikrofonun açık.');
         appendToLog('Ses tanıma başlatıldı. Dinleniyor...');
-        // isListening = true; // Bu artık başlatma butonuna basıldığında ayarlanıyor
       };
 
       recognition.onresult = (event) => {
         const text = event.results[0][0].transcript.toLowerCase();
         appendToLog('Sen söyledin: "' + text + '"');
         updateStatus('Anladım: ' + text);
-        botReply(text); // Botun yanıt vermesi
+        botReply(text);
       };
 
       recognition.onerror = (event) => {
@@ -251,7 +299,7 @@
         } else if (event.error === 'no-speech') {
           appendToLog('Konuşma algılanmadı. Lütfen daha net ve yakın konuşun.');
           updateStatus('Konuşma algılanmadı. Tekrar deniyorum...');
-          if(isListening) { // Eğer hala dinlemede kalması gerekiyorsa
+          if(isListening && !speechSynthesis.speaking) { // Eğer isListening true ise ve bot konuşmuyorsa
               setTimeout(() => {
                   try {
                       recognition.start();
@@ -275,21 +323,19 @@
              isListening = false;
              stopRecognition();
              updateStatus('Bir hata nedeniyle asistan durduruldu.');
-             setButtonStates(false, false, false, false, true); // İzin butonunu tekrar aktif et
+             setButtonStates(false, false, false, false, true);
         }
       };
 
       recognition.onend = () => {
         appendToLog('Ses tanıma sona erdi (onend tetiklendi).');
-        // Bot konuşması sonrası otomatik yeniden başlatma botSpeak.onend içinde yönetiliyor.
-        // Burada sadece dinleme devam etmiyorsa durumu güncelleriz.
         if (!isListening) {
              updateStatus('Ses tanıma durdu.');
              appendToLog('Ses tanıma kalıcı olarak durduruldu (isListening false).');
         } else if (!speechSynthesis.speaking) {
-            // Eğer isListening true ise ama bot konuşmuyorsa (yani kullanıcı konuşması bitti)
-            // BotSpeak içindeki gecikmeli başlatmayı bekliyoruz.
+            // Kullanıcı konuşması bitti ama bot henüz konuşmaya başlamadıysa veya konuşması bittiyse
             updateStatus('Konuşma bitti. Botun yanıtı bekleniyor...');
+            // Bu kısım botSpeak içindeki gecikmeli başlatmayı bekleyecek
         }
       };
 
@@ -300,7 +346,7 @@
         console.error("Recognition start initial error:", e);
         updateStatus('Ses tanıma başlatılamadı. Lütfen izinleri tekrar kontrol edin.');
         isListening = false;
-        setButtonStates(false, false, false, false, true); // İzin butonunu tekrar aktif et
+        setButtonStates(false, false, false, false, true);
       }
     }
 
@@ -343,11 +389,11 @@
     // Ses tanımayı durduran fonksiyon
     function stopRecognition() {
       if(recognition) {
-        isListening = false; // Dinlemeyi tamamen kapat
+        // isListening = false; // Bu bayrak stopAll içinde veya hata durumunda ayarlanmalı
         recognition.stop();
         appendToLog('Ses tanıma durdurma komutu gönderildi.');
       }
-      recognition = null; // Recognition objesini sıfırla
+      recognition = null;
     }
 
     // Kamera ve mikrofon akışlarını durduran fonksiyon
@@ -369,11 +415,13 @@
     // Tüm aktif işlemleri durduran ana fonksiyon
     function stopAll() {
       appendToLog('Tüm konuşma ve akışlar sonlandırılıyor...');
+      speechSynthesis.cancel(); // Konuşmayı da durdur
+      isListening = false; // Dinlemeyi tamamen kapat
       stopRecognition();
       stopStreams();
       updateStatus('Konuşma sonlandırıldı. Tekrar başlatmak için izinleri alıp düğmelere tıklayın.');
       appendToLog('NovaTalk tamamen sonlandırıldı.');
-      setButtonStates(false, false, false, false, true); // İzin butonunu tekrar aktif et
+      setButtonStates(false, false, false, false, true);
     }
 
     // Butonların durumunu ayarlayan yardımcı fonksiyon
@@ -395,21 +443,18 @@
     btnRequestPermissions.onclick = () => {
         appendToLog('İzinler isteniyor...');
         updateStatus('Mikrofon ve kamera izinleri bekleniyor...');
-        // Her iki izni de aynı anda isteyelim ki sonra sorun olmasın
         navigator.mediaDevices.getUserMedia({ audio: true, video: true })
             .then(stream => {
-                // İzinler başarılı bir şekilde alındı, akışları hemen kullanmıyoruz
-                // Sadece izinlerin alındığını kontrol etmek için
-                stream.getTracks().forEach(t => t.stop()); // Akışları hemen durdur
+                stream.getTracks().forEach(t => t.stop());
                 appendToLog('Kamera ve mikrofon izinleri başarıyla alındı.');
                 updateStatus('İzinler alındı. Sesli veya Görüntülü Asistanı başlatabilirsiniz.');
-                setButtonStates(true, false, true, false, false); // Başlatma butonlarını aktif et, izin butonunu pasif et
+                setButtonStates(true, false, true, false, false);
             })
             .catch(err => {
                 appendToLog('İzin alma hatası: ' + err.name + " - " + err.message);
                 console.error("Permission request error:", err);
                 updateStatus('İzinler reddedildi veya bir hata oluştu. Lütfen tarayıcı ayarlarınızı kontrol edin.');
-                setButtonStates(false, false, false, false, true); // İzin butonunu tekrar aktif et
+                setButtonStates(false, false, false, false, true);
                 alert('Mikrofon veya kamera izni reddedildi. Uygulamanın çalışması için izin vermeniz gerekiyor.');
             });
     };
@@ -417,7 +462,7 @@
 
     // Sesli Konuşma Başlat düğmesine tıklama olayı
     btnAudioStart.onclick = () => {
-      stopAll(); // Önceki tüm işlemleri durdur
+      stopAll();
       appendToLog('Sesli asistan başlatma isteği.');
       updateStatus('Mikrofon başlatılıyor...');
 
@@ -428,10 +473,10 @@
           updateStatus('Sesli asistan başlatıldı. Dinliyorum...');
           appendToLog('Mikrofon akışı alındı. Ses tanıma başlatılıyor.');
 
-          setButtonStates(false, true, false, false, false); // Sesli başlat pasif, durdur aktif, diğerleri pasif
+          setButtonStates(false, true, false, false, false);
 
-          isListening = true; // Dinleme durumunu aktif et
-          startRecognition(); // Ses tanımayı başlat
+          isListening = true;
+          startRecognition();
         })
         .catch(err => {
           updateStatus('Mikrofon başlatma hatası: ' + err.message);
@@ -462,9 +507,9 @@
           updateStatus('Görüntülü konuşma başlatıldı. Dinliyorum...');
           appendToLog('Kamera ve mikrofon akışı alındı. Ses tanıma başlatılıyor.');
 
-          setButtonStates(false, false, false, true, false); // Görüntülü başlat pasif, durdur aktif, diğerleri pasif
+          setButtonStates(false, false, false, true, false);
           
-          isListening = true; // Dinleme durumunu aktif et
+          isListening = true;
           startRecognition();
         })
         .catch(err => {
