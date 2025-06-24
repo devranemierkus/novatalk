@@ -1,8 +1,9 @@
-<!DOCTYPE html><html lang="tr">
+<!DOCTYPE html>
+<html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <title>NovaTalk - Sesli & Görüntülü Konuşma</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>NovaTalk - Sesli Konuşma</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style id="tema-stil">
     body {
       background: #121212;
@@ -19,6 +20,11 @@
       border: none;
       cursor: pointer;
       transition: background-color 0.3s;
+      background-color: #4caf50;
+      color: white;
+    }
+    button:hover {
+      background-color: #45a049;
     }
     #log {
       margin-top: 20px;
@@ -31,41 +37,62 @@
       margin-right: auto;
       white-space: pre-wrap;
       border: 1px solid #4caf50;
+      min-height: 120px;
+      overflow-y: auto;
     }
-    #gecmis, #guvenlik {
-      margin-top: 20px;
+    #gecmis {
+      margin-top: 10px;
       font-size: 14px;
       color: #ccc;
       max-width: 400px;
       margin-left: auto;
       margin-right: auto;
+      text-align: left;
+      font-style: italic;
     }
     #guvenlik {
+      margin-top: 30px;
+      font-size: 14px;
       color: #aaa;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
       border-top: 1px solid #444;
       padding-top: 20px;
+      text-align: left;
+      line-height: 1.4;
     }
   </style>
 </head>
-<body><h1>NovaTalk 🤖</h1><button onclick="temaDegistir()">🎨 Tema Değiştir</button> <button onclick="baslatSesli()">🎤 Sesli Konuşmayı Başlat</button> <button onclick="durdurSesli()">🛑 Konuşmayı Durdur</button>
+<body>
+
+<h1>NovaTalk 🤖</h1>
+
+<button onclick="temaDegistir()">🎨 Tema Değiştir</button>
+<button onclick="baslatSesli()">🎤 Sesli Konuşmayı Başlat</button>
+<button onclick="durdurSesli()">🛑 Konuşmayı Durdur</button>
 
 <div id="status">Durum: Bekleniyor...</div>
+
 <div id="log">📝 Konuşma logu buraya gelecek...</div>
-<div id="gecmis">🔁 Tarayıcıda geçmiş saklanıyor...</div><div id="guvenlik">
-  🔒 <strong>Güvenlik Bilgisi:</strong><br>
-  NovaTalk, tüm konuşmaları <u>sadece sizin cihazınızda işler</u>.<br>
-  Sesler ve görüntüler hiçbir şekilde kaydedilmez veya sunuculara gönderilmez.<br>
+<div id="gecmis">🔁 Tarayıcıda geçmiş saklanıyor...</div>
+
+<div id="guvenlik">
+  🔒 <strong>Güvenlik Bilgisi:</strong><br />
+  NovaTalk, tüm konuşmaları <u>sadece sizin cihazınızda işler</u>.<br />
+  Sesler ve görüntüler hiçbir şekilde kaydedilmez veya sunuculara gönderilmez.<br />
   Kimse sizi izleyemez ya da dinleyemez. Tamamen güvenli ve gizlidir.
-</div><script>
+</div>
+
+<script>
   let recognition;
-  let log = document.getElementById("log");
-  let statusDiv = document.getElementById("status");
-  let idleTimer;
-  let idleUyariYapildi = false;
+  const log = document.getElementById("log");
+  const statusDiv = document.getElementById("status");
 
   function botKonus(text) {
+    if (speechSynthesis.speaking) speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = 'tr-TR';
+    utter.lang = "tr-TR";
     utter.pitch = 1.1;
     utter.rate = 0.95;
     speechSynthesis.speak(utter);
@@ -73,32 +100,37 @@
 
   function baslatSesli() {
     navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(() => {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognition = new SpeechRecognition();
-      recognition.lang = 'tr-TR';
-      recognition.continuous = true;
+      .then(() => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.lang = "tr-TR";
+        recognition.continuous = true;
 
-      recognition.onstart = () => {
-        statusDiv.textContent = "Durum: ChatNova seni dinliyor...";
-        botKonus("Selam! Ben ChatNova. Seni dinliyorum...");
-        resetIdle();
-      };
+        recognition.onstart = () => {
+          statusDiv.textContent = "Durum: ChatNova seni dinliyor...";
+          botKonus("Selam! Ben ChatNova. Seni dinliyorum...");
+        };
 
-      recognition.onresult = (event) => {
-        const text = event.results[event.results.length - 1][0].transcript;
-        log.textContent += `\n👤 Sen: ${text}`;
-        localStorage.setItem('konusmaLog', log.textContent);
-        idleUyariYapildi = false;
-        resetIdle();
-        cevapVer(text);
-      };
+        recognition.onresult = (event) => {
+          const text = event.results[event.results.length - 1][0].transcript;
+          log.textContent += `\n👤 Sen: ${text}`;
+          localStorage.setItem("konusmaLog", log.textContent);
+          cevapVer(text);
+        };
 
-      recognition.start();
-    })
-    .catch(err => {
-      statusDiv.textContent = "❌ Mikrofon izni reddedildi.";
-    });
+        recognition.onerror = (event) => {
+          statusDiv.textContent = "⚠️ Ses tanıma hatası: " + event.error;
+        };
+
+        recognition.onend = () => {
+          statusDiv.textContent = "Durum: Dinleme sona erdi.";
+        };
+
+        recognition.start();
+      })
+      .catch((err) => {
+        statusDiv.textContent = "❌ Mikrofon izni reddedildi.";
+      });
   }
 
   function durdurSesli() {
@@ -106,44 +138,48 @@
       recognition.stop();
       statusDiv.textContent = "Durum: Konuşma durduruldu.";
     }
-    if (idleTimer) clearTimeout(idleTimer);
   }
 
   function cevapVer(text) {
-    let cevap;
+    let cevap = "";
+    text = text.toLowerCase();
+
     if (text.includes("nasılsın")) cevap = "İyiyim, sen nasılsın?";
     else if (text.includes("merhaba")) cevap = "Merhaba! Sana nasıl yardımcı olabilirim?";
     else if (text.includes("görüşürüz")) cevap = "Görüşmek üzere, iyi günler!";
-    else cevap = "Bunu anlayamadım, tekrar eder misin?";
+    else if (text.includes("adın ne") || text.includes("kimsin")) cevap = "Ben ChatNova, sana yardımcı olmak için buradayım.";
+    else if (text.includes("seni kim yaptı") || text.includes("seni kim yarattı")) cevap = "Beni Emir Devran'ın zekası ve hayal gücü yarattı.";
+    else if (text.includes("ne yapıyorsun") || text.includes("ne yapabilirsin")) cevap = "Seninle konuşabilir, sohbet edebilir ve yardımcı olabilirim.";
+    else if (text.includes("hava nasıl")) cevap = "Üzgünüm, hava durumunu şu an bilemiyorum ama senin havan güzel olsun!";
+    else cevap = "Bunu tam anlayamadım, başka bir şekilde sorabilir misin?";
 
     log.textContent += `\n🤖 ChatNova: ${cevap}`;
-    localStorage.setItem('konusmaLog', log.textContent);
+    localStorage.setItem("konusmaLog", log.textContent);
     botKonus(cevap);
-  }
-
-  function resetIdle() {
-    if (idleTimer) clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => {
-      if (!idleUyariYapildi) {
-        botKonus("Konuşmayı bekliyorum dostum...");
-        log.textContent += `\n🤖 ChatNova: Konuşmayı bekliyorum dostum...`;
-        idleUyariYapildi = true;
-      }
-    }, 5000);
   }
 
   function temaDegistir() {
     const stil = document.getElementById("tema-stil");
     if (stil.innerHTML.includes("background: #121212")) {
       stil.innerHTML = stil.innerHTML.replace("#121212", "#ffffff").replace("#eee", "#111");
+      document.querySelectorAll("button").forEach(btn => {
+        btn.style.backgroundColor = "#1976d2";
+        btn.style.color = "white";
+      });
     } else {
       stil.innerHTML = stil.innerHTML.replace("#ffffff", "#121212").replace("#111", "#eee");
+      document.querySelectorAll("button").forEach(btn => {
+        btn.style.backgroundColor = "#4caf50";
+        btn.style.color = "white";
+      });
     }
   }
 
   window.onload = () => {
-    const gecmis = localStorage.getItem('konusmaLog');
+    const gecmis = localStorage.getItem("konusmaLog");
     if (gecmis) log.textContent = gecmis;
-  }
-</script></body>
+  };
+</script>
+
+</body>
 </html>
