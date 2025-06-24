@@ -26,7 +26,9 @@
     background: #999999; cursor: not-allowed; box-shadow: none;
   }
   #app {
-    margin-top: 80px; width: 360px; max-width: 95vw; display: flex; flex-direction: column; align-items: center; position: relative; flex-grow: 1;
+    margin-top: 80px;
+    width: 360px; max-width: 95vw;
+    display: flex; flex-direction: column; align-items: center; position: relative; flex-grow: 1;
   }
   #status {
     font-size:18px; color:#004d40; min-height:24px; margin-bottom:10px; user-select:none; text-align:center;
@@ -124,12 +126,11 @@
   let recognition = null;
   let isCalling = false;
   let isVideoCall = false;
-  let audioStream = null; // sadece görüntülü arama için
   let videoStream = null;
+  let micStream = null;
   let isSpeaking = false;
   let isListening = false;
   let eyeMoveInterval = null;
-  let micStream = null; // mikrofon streami sadece basılı tutunca açılacak
 
   function animateMouth(open) {
     mouth.style.height = open ? '50px' : '30px';
@@ -192,9 +193,9 @@
     };
     speechSynthesis.speak(utter);
   }
-  async function getVideoStream() {
+  async function getMedia(video=false) {
     try {
-      return await navigator.mediaDevices.getUserMedia({video: {width:320, height:240}});
+      return await navigator.mediaDevices.getUserMedia(video ? {video: {width:320, height:240}} : {});
     } catch(e) {
       alert("Kamera izni reddedildi veya desteklenmiyor.");
       endCurrentCall();
@@ -206,11 +207,9 @@
       return await navigator.mediaDevices.getUserMedia({audio:true});
     } catch(e) {
       alert("Mikrofon izni reddedildi veya desteklenmiyor.");
-      stopRecognition();
       throw e;
     }
   }
-  // Konuşma tanıma
   function startRecognition() {
     if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
       alert("Tarayıcınız ses tanımayı desteklemiyor.");
@@ -234,7 +233,7 @@
     recognition.onerror = (event) => {
       if(event.error === 'not-allowed' || event.error === 'service-not-allowed') {
         alert("Mikrofon izni yok veya engellendi.");
-        stopRecognition();
+        endCurrentCall();
       } else if(event.error !== 'aborted' && event.error !== 'no-speech') {
         logMessage("⚠️ Ses tanıma hatası: " + event.error);
       }
@@ -244,7 +243,6 @@
       talkInfo.textContent = "";
       status.textContent = "Arama açık. Basılı tut konuş.";
       recognition = null;
-      // Mikrofon streamini kapat
       if(micStream){
         micStream.getTracks().forEach(t => t.stop());
         micStream = null;
@@ -274,7 +272,7 @@
     btnVideoCall.disabled = true;
     try {
       if(video){
-        videoStream = await getVideoStream();
+        videoStream = await getMedia(true);
         videoLocal.srcObject = videoStream;
         videoLocal.style.display = "block";
         avatar.style.display = "block";
@@ -315,12 +313,10 @@
     stopRecognition();
     stopEyeMovement();
   }
-  // Basılı tut konuş
   talkButton.addEventListener('mousedown', async () => {
     if(!isCalling || isListening) return;
     try {
       micStream = await getMicStream();
-      // micStream'u kullanmasak da tanıma için izin gerekebilir, ses çıkışı yok burada.
       startRecognition();
     } catch {}
   });
@@ -341,7 +337,6 @@
     if(!isCalling || !isListening) return;
     stopRecognition();
   }, {passive:false});
-
   btnVoiceCall.addEventListener('click', () => startCall(false));
   btnVideoCall.addEventListener('click', () => startCall(true));
   endCall.addEventListener('click', () => endCurrentCall());
