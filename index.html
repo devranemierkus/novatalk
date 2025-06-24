@@ -1,7 +1,8 @@
-<!DOCTYPE html><html lang="tr">
+<!DOCTYPE html>
+<html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>NovaTalk - Görüntülü & Sesli Sohbet</title>
   <style>
     body {
@@ -39,27 +40,12 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    #videoContainer {
-      position: relative;
+    #video {
       width: 90%;
       max-width: 400px;
       margin-top: 20px;
       display: none;
-    }
-    #video {
-      width: 100%;
       border-radius: 12px;
-    }
-    #avatarOverlay {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      border: 2px solid white;
-      background-image: url('https://i.imgur.com/0y0y0y0.png'); /* avatar örneği */
-      background-size: cover;
     }
     #log {
       background: white;
@@ -69,7 +55,6 @@
       min-height: 100px;
       overflow-y: auto;
       white-space: pre-wrap;
-      color: black;
     }
     footer {
       display: flex;
@@ -101,36 +86,32 @@
       margin-top: 20px;
       font-size: 16px;
     }
-    .footer-note {
-      text-align: center;
-      font-size: 13px;
-      padding: 10px;
-      color: #555;
-    }
   </style>
 </head>
 <body>
-  <header>NovaTalk</header>  <div id="callScreen">
+  <header>NovaTalk</header>
+
+  <div id="callScreen">
     <div id="spinner"></div>
     <div id="status">ChatNova aranıyor...</div>
-    <div id="videoContainer">
-      <video id="video" autoplay playsinline muted></video>
-      <div id="avatarOverlay"></div>
-    </div>
+    <video id="video" autoplay playsinline muted></video>
     <div id="statusMsg"></div>
-  </div>  <div id="log">📝 Konuşmalar buraya yazılacak...</div>  <footer>
+  </div>
+
+  <div id="log">📝 Konuşmalar buraya yazılacak...</div>
+
+  <footer>
     <button id="startAudioBtn">🎤 Sesli Arama</button>
     <button id="startVideoBtn">📹 Görüntülü Arama</button>
     <button id="endCallBtn">🔴 Aramayı Bitir</button>
-  </footer>  <div class="footer-note">
-    📢 Güvenlik: NovaTalk asla konuşmalarınızı kaydetmez veya paylaşmaz. Mikrofon ve kamera yalnızca sizin izninizle çalışır.
-  </div>  <script>
+  </footer>
+
+  <script>
     const status = document.getElementById('status');
     const statusMsg = document.getElementById('statusMsg');
     const log = document.getElementById('log');
     const spinner = document.getElementById('spinner');
     const video = document.getElementById('video');
-    const videoContainer = document.getElementById('videoContainer');
     const startAudioBtn = document.getElementById('startAudioBtn');
     const startVideoBtn = document.getElementById('startVideoBtn');
     const endCallBtn = document.getElementById('endCallBtn');
@@ -157,7 +138,6 @@
       if (audioStream) audioStream.getTracks().forEach(t => t.stop());
       if (videoStream) videoStream.getTracks().forEach(t => t.stop());
       video.style.display = 'none';
-      videoContainer.style.display = 'none';
       status.textContent = 'Görüşme sonlandırıldı.';
       spinner.style.display = 'none';
       startAudioBtn.style.display = 'inline-block';
@@ -170,12 +150,12 @@
       recognition.lang = 'tr-TR';
       recognition.onstart = () => {
         statusMsg.textContent = '🎤 Dinleniyor...';
-        speak('Selam! Seni dinliyorum.');
+        speak('Seni dinliyorum.');
       };
       recognition.onresult = (e) => {
         const text = e.results[0][0].transcript;
         logMessage('👤 Sen: ' + text);
-        speak('ChatNova: ' + text);
+        speak('Anladım: ' + text);
         resetInactivity();
       };
       recognition.onend = () => {
@@ -212,7 +192,6 @@
             if (withVideo) {
               videoStream = stream;
               video.srcObject = stream;
-              videoContainer.style.display = 'block';
               video.style.display = 'block';
             }
             startSpeechRecognition();
@@ -226,5 +205,6 @@
     startAudioBtn.onclick = () => startCall(true, false);
     startVideoBtn.onclick = () => startCall(true, true);
     endCallBtn.onclick = endCall;
-  </script></body>
+  </script>
+</body>
 </html>
