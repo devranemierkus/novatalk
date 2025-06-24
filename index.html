@@ -104,17 +104,38 @@
   let audioStream = null;
   let videoStream = null;
   let botHasGreeted = false;
-  let speechSynthesisUtterance = null;
+
+  // İzin kontrol fonksiyonu - mikrofon izni
+  async function checkMicrophonePermission() {
+    if (!navigator.permissions) return true; // destek yoksa izin iste
+    try {
+      const status = await navigator.permissions.query({ name: 'microphone' });
+      return status.state === 'granted';
+    } catch {
+      return true; // hata varsa izin iste
+    }
+  }
+
+  // İzin kontrol fonksiyonu - kamera izni
+  async function checkCameraPermission() {
+    if (!navigator.permissions) return true;
+    try {
+      const status = await navigator.permissions.query({ name: 'camera' });
+      return status.state === 'granted';
+    } catch {
+      return true;
+    }
+  }
 
   function speak(text) {
     if (speechSynthesis.speaking) {
       speechSynthesis.cancel();
     }
-    speechSynthesisUtterance = new SpeechSynthesisUtterance(text);
-    speechSynthesisUtterance.lang = 'tr-TR';
-    speechSynthesisUtterance.pitch = 1.1;
-    speechSynthesisUtterance.rate = 1;
-    speechSynthesis.speak(speechSynthesisUtterance);
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'tr-TR';
+    utterance.pitch = 1.1;
+    utterance.rate = 1;
+    speechSynthesis.speak(utterance);
   }
 
   function logMessage(text) {
@@ -180,7 +201,6 @@
 
     recognition.onend = () => {
       if (callActive) {
-        // Otomatik yeniden başlat
         recognition.start();
       }
     };
@@ -240,8 +260,8 @@
     permissionMsg.textContent = '';
   }
 
-  function startCall(withVideo = false) {
-    if (callActive) return; // Zaten arama varsa yenisi başlamasın
+  async function startCall(withVideo = false) {
+    if (callActive) return;
 
     clearPermissionMessage();
     callActive = true;
@@ -252,49 +272,69 @@
     startVideoBtn.style.display = 'none';
     endCallBtn.style.display = 'inline-block';
 
-    setTimeout(() => {
+    setTimeout(async () => {
       spinner.style.display = 'none';
       status.textContent = 'Görüşme başladı';
 
-      const constraints = withVideo
-        ? { audio: true, video: true }
-        : { audio: true };
+      // İzin kontrol ve bilgilendirme:
+      if (withVideo) {
+        // Görüntülü arama: mikrofon + kamera izni kontrolü
+        const micGranted = await checkMicrophonePermission();
+        const camGranted = await checkCameraPermission();
 
-      // İzin istemeden önce bilgi ver
-      showPermissionMessage(withVideo
-        ? 'NovaTalk kameranıza ve mikrofonunuza erişmek istiyor. Lütfen izin verin.'
-        : 'NovaTalk mikrofonunuza erişmek istiyor. Lütfen izin verin.');
+        if (!micGranted || !camGranted) {
+          showPermissionMessage('NovaTalk mikrofon ve kameranıza erişmek istiyor. Lütfen izin verin.');
+        }
 
-      navigator.mediaDevices.getUserMedia(constraints)
-        .then(stream => {
-          clearPermissionMessage();
+        navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+          .then(stream => {
+            clearPermissionMessage();
 
-          // Ses ve kamera izin iptallerini yakalamak için event listener ekle
-          stream.getTracks().forEach(track => {
-            track.onended = () => {
-              handleStreamEnd();
-            };
-          });
+            stream.getTracks().forEach(track => {
+              track.onended = () => handleStreamEnd();
+            });
 
-          if (withVideo) {
             videoStream = stream;
             video.srcObject = stream;
             video.style.display = 'block';
             audioStream = new MediaStream(stream.getAudioTracks());
-          } else {
+
+            startRecognition();
+          })
+          .catch(err => {
+            clearPermissionMessage();
+            status.textContent = 'İzin alınamadı: ' + err.message;
+            logMessage('⚠️ İzin reddedildi veya hata oluştu: ' + err.message);
+            endCall();
+          });
+      } else {
+        // Sadece sesli arama: sadece mikrofon izni kontrolü
+        const micGranted = await checkMicrophonePermission();
+
+        if (!micGranted) {
+          showPermissionMessage('NovaTalk mikrofonunuza erişmek istiyor. Lütfen izin verin.');
+        }
+
+        navigator.mediaDevices.getUserMedia({ audio: true })
+          .then(stream => {
+            clearPermissionMessage();
+
+            stream.getTracks().forEach(track => {
+              track.onended = () => handleStreamEnd();
+            });
+
             audioStream = stream;
             video.style.display = 'none';
-          }
 
-          startRecognition();
-        })
-        .catch(err => {
-          clearPermissionMessage();
-          status.textContent = 'İzin alınamadı: ' + err.message;
-          logMessage('⚠️ İzin reddedildi veya hata oluştu: ' + err.message);
-          endCall();
-        });
-
+            startRecognition();
+          })
+          .catch(err => {
+            clearPermissionMessage();
+            status.textContent = 'İzin alınamadı: ' + err.message;
+            logMessage('⚠️ İzin reddedildi veya hata oluştu: ' + err.message);
+            endCall();
+          });
+      }
     }, 4000);
   }
 
