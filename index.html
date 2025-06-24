@@ -109,6 +109,7 @@
       font-size: 18px;
       display: none;
       border-radius: 40px;
+      user-select: none;
     }
     #status {
       margin-top: 8px;
@@ -182,7 +183,6 @@
       if (lower.includes("merhaba")) response = "Merhaba! Sana nasıl yardımcı olabilirim?";
       else if (lower.includes("nasılsın")) response = "Gayet iyiyim! Sen nasılsın?";
       else if (lower.includes("görüşürüz")) response = "Hoşçakal!";
-
       logMessage("🤖 ChatNova: " + response);
       speak(response);
     }
@@ -199,6 +199,8 @@
         });
         if (video) {
           userVideo.srcObject = stream;
+        } else {
+          userVideo.style.display = "none";
         }
       } catch (e) {
         alert("İzin alınamadı: " + e.message);
@@ -220,30 +222,28 @@
         botReply(transcript);
       };
       recognition.onerror = (e) => {
-        logMessage("⚠️ Hata: " + e.error);
+        if (e.error !== 'aborted') logMessage("⚠️ Hata: " + e.error);
       };
       recognition.start();
     }
 
-    pressToTalk.addEventListener('mousedown', () => {
+    // Tuşla konuş: basılı tutma
+    function startListen(e) {
+      e.preventDefault();
       startRecognition();
       statusDiv.textContent = "🎤 Dinleniyor...";
-    });
-
-    pressToTalk.addEventListener('mouseup', () => {
-      recognition?.stop();
+    }
+    function stopListen(e) {
+      e.preventDefault();
+      if (recognition) recognition.stop();
       statusDiv.textContent = "📩 Yanıt bekleniyor...";
-    });
+    }
 
-    pressToTalk.addEventListener('touchstart', () => {
-      startRecognition();
-      statusDiv.textContent = "🎤 Dinleniyor...";
-    });
-
-    pressToTalk.addEventListener('touchend', () => {
-      recognition?.stop();
-      statusDiv.textContent = "📩 Yanıt bekleniyor...";
-    });
+    pressToTalk.addEventListener('mousedown', startListen);
+    pressToTalk.addEventListener('mouseup', stopListen);
+    pressToTalk.addEventListener('touchstart', startListen);
+    pressToTalk.addEventListener('touchend', stopListen);
+    pressToTalk.addEventListener('contextmenu', e => e.preventDefault()); // Uzun basma menüsünü engelle
   </script>
 </body>
 </html>
