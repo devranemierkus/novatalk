@@ -104,14 +104,34 @@
   let callStatusTimeout = null;
   let callActive = false;
 
+  // Speech Synthesis için global kontrol, böylece üst üste binmeyi engelleriz
+  let speechQueue = [];
+  let isSpeaking = false;
+
+  function speak(text) {
+    if (speechSynthesis.speaking) {
+      // Eğer konuşuluyorsa kuyruğa ekle
+      speechQueue.push(text);
+    } else {
+      isSpeaking = true;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'tr-TR';
+      utterance.pitch = 1.1;
+      utterance.rate = 1.1;
+      utterance.onend = () => {
+        isSpeaking = false;
+        if (speechQueue.length > 0) {
+          const nextText = speechQueue.shift();
+          speak(nextText);
+        }
+      };
+      speechSynthesis.speak(utterance);
+    }
+  }
+
   function botKonus(text) {
-    if (speechSynthesis.speaking) speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'tr-TR';
-    utterance.pitch = 1.1;
-    utterance.rate = 1.1;
-    speechSynthesis.speak(utterance);
     logMesaj('🤖 ChatNova: ' + text);
+    speak(text);
   }
 
   function logMesaj(mesaj) {
@@ -135,6 +155,7 @@
       status.textContent = 'Dinleniyor... Konuşabilirsiniz.';
       logMesaj('🎙️ Ses tanıma başlatıldı.');
       resetInactivityTimer();
+      botKonus('Seni dinliyorum...');
     };
 
     recognition.onerror = (event) => {
@@ -149,6 +170,10 @@
       recognizing = false;
       status.textContent = 'Ses tanıma durdu.';
       clearTimeout(inactivityTimer);
+      if (callActive) {
+        // Otomatik tekrar başlat, böylece sürekli dinler
+        recognition.start();
+      }
     };
 
     recognition.onresult = (event) => {
@@ -156,7 +181,6 @@
       logMesaj('👤 Sen: ' + speech);
       resetInactivityTimer();
       botCevapVer(speech);
-      if (recognizing) recognition.start();
     };
 
     recognition.start();
@@ -173,6 +197,7 @@
   function botCevapVer(kullaniciSoz) {
     const soz = kullaniciSoz.toLowerCase();
 
+    // Burada çok basit örnek, API ile de bağlayabilirsin
     if (soz.includes('nasılsın')) {
       botKonus('İyiyim, teşekkür ederim! Sen nasılsın?');
     } else if (soz.includes('merhaba')) {
@@ -208,10 +233,12 @@
     callStatusTimeout = setTimeout(() => {
       callStatus.style.display = 'none';
     }, 4000);
+    // Sesli olarak da söyle
+    speak(mesaj);
   }
 
   btnAudioStart.onclick = () => {
-    if (callActive) return; // Spam engelle
+    if (callActive) return;
     callActive = true;
     gosterCallStatus('ChatNova aranıyor (Sesli)...');
     btnAudioStart.style.display = 'none';
@@ -222,7 +249,7 @@
   };
 
   btnVideoStart.onclick = () => {
-    if (callActive) return; // Spam engelle
+    if (callActive) return;
     navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
       callActive = true;
       gosterCallStatus('ChatNova aranıyor (Görüntülü)...');
@@ -231,14 +258,14 @@
       btnCallEnd.style.display = 'inline-block';
       logMesaj('🟢 Görüntülü arama başlatıldı.');
       baslatKonusma();
-      // Not: İstersen burada video element ekleyip stream gösterilebilir
+      // İstersen buraya video gösterme kodu ekleyebilirsin
     }).catch(err => {
       alert('Kamera ve mikrofon izni gerekli: ' + err.message);
     });
   };
 
   btnCallEnd.onclick = () => {
-    if (!callActive) return; // Spam engelle
+    if (!callActive) return;
     bitirKonusma();
   };
 </script>
