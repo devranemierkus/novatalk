@@ -3,190 +3,261 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>NovaTalk Gemini Sesli Chat</title>
+<title>NovaTalk - ChatNova Sesli & Görüntülü Arama</title>
 <style>
   body {
-    margin:0; font-family: Arial, sans-serif; background:#e0f2f1; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh;
+    margin:0; font-family: Arial, sans-serif; background:#e0f7fa; display:flex; flex-direction:column; height:100vh; align-items:center; justify-content:center;
   }
-  #avatar {
-    width: 150px; height: 150px; background:#26a69a; border-radius:50%; position:relative; margin-bottom:20px;
+  header {
+    background:#00796b; color:#fff; padding:15px 0; width:100%; text-align:center; font-size:26px; font-weight:bold; user-select:none;
   }
-  .eye {
-    width:20px; height:20px; background:#fff; border-radius:50%; position:absolute; top:40px; box-shadow: inset 0 0 3px #444;
-  }
-  .eye.left { left:30px; }
-  .eye.right { right:30px; }
-  .pupil {
-    width:8px; height:8px; background:#004d40; border-radius:50%; position:absolute; top:6px; left:6px; transition: transform 0.2s ease;
-  }
-  #mouth {
-    width:60px; height:25px; background:#004d40; border-radius: 0 0 30px 30px; position:absolute; bottom:30px; left:50%; transform: translateX(-50%);
-    transition: height 0.1s ease;
-  }
-  #controls {
-    display: flex; gap: 10px;
-  }
-  button {
-    padding: 10px 20px; font-size: 16px; border: none; border-radius: 25px; cursor: pointer;
-  }
-  #speakBtn {
-    background: #00796b; color: white; touch-action: none;
+  #app {
+    background:#fff; width:360px; max-width:95vw; border-radius:15px; box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    display:flex; flex-direction:column; align-items:center; padding:15px 20px;
   }
   #status {
-    margin-top: 10px; font-size: 14px; color: #004d40;
+    font-size:18px; color:#004d40; min-height:24px; margin-bottom:10px; user-select:none; text-align:center;
+  }
+  video {
+    width: 320px; height: 240px; background:#000; border-radius:12px; object-fit: cover; margin-bottom: 10px;
+  }
+  #avatar {
+    width: 150px; height: 150px; border-radius: 50%; background:#26a69a; position: relative; margin-bottom:15px;
+    box-shadow: inset 0 0 8px #00796b;
+  }
+  .eye {
+    width: 22px; height: 22px; background:#fff; border-radius:50%; position:absolute; top:45px;
+    box-shadow: inset 0 0 4px #444;
+  }
+  .eye.left { left: 30px; }
+  .eye.right { right: 30px; }
+  .pupil {
+    width: 10px; height: 10px; background:#004d40; border-radius:50%; position:absolute; top:6px; left:6px;
+    transition: all 0.2s ease;
+  }
+  #mouth {
+    position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+    width: 70px; height: 30px; border-radius: 0 0 40px 40px / 0 0 50px 50px;
+    background: #004d40;
+    transition: height 0.15s ease;
+  }
+  #controls {
+    display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px;
+  }
+  button {
+    background:#00796b; color:#fff; border:none; padding:12px 15px; font-size:16px; border-radius:30px;
+    cursor:pointer; user-select:none; box-shadow: 0 5px #004d40;
+    transition: transform 0.1s ease;
+  }
+  button:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px #004d40;
+  }
+  #btnSpeak {
+    flex:1;
+    margin-right: 10px;
+  }
+  #btnToggleVideo {
+    flex:1;
+    margin-left: 10px;
+  }
+  #log {
+    width: 100%; max-width: 320px; height: 160px; background:#f0f4f4; border-radius:10px; overflow-y:auto;
+    padding:10px; font-size:14px; color:#004d40; margin-top:10px; white-space:pre-wrap;
+  }
+  #securityNote {
+    font-size:12px; color:#555; margin-top:12px; text-align:center; user-select:none;
   }
 </style>
 </head>
 <body>
-  <div id="avatar">
-    <div class="eye left"><div class="pupil"></div></div>
-    <div class="eye right"><div class="pupil"></div></div>
+<header>NovaTalk - ChatNova</header>
+
+<div id="app">
+  <div id="status">Başlamak için butona basılı tut ve konuş.</div>
+  <video id="videoLocal" autoplay playsinline muted style="display:none; border-radius:12px;"></video>
+  <div id="avatar" style="display:block; position:relative;">
+    <div class="eye left"><div class="pupil" id="pupilLeft"></div></div>
+    <div class="eye right"><div class="pupil" id="pupilRight"></div></div>
     <div id="mouth"></div>
   </div>
+
   <div id="controls">
-    <button id="speakBtn">🎤 Basılı Tut & Konuş</button>
+    <button id="btnSpeak">🎤 Basılı Tut & Konuş</button>
+    <button id="btnToggleVideo">📹 Görüntüyü Aç/Kapat</button>
   </div>
-  <div id="status">Mikrofon izni isteniyor...</div>
+
+  <div id="log">📝 Sohbet burada gözükecek...</div>
+</div>
+
+<div id="securityNote">
+  🔒 Mikrofon ve kamera izinleri sadece sen izin verdiğinde aktif olur. Verilerin kaydedilmez.
+</div>
 
 <script>
-  const speakBtn = document.getElementById('speakBtn');
+  const status = document.getElementById('status');
+  const videoLocal = document.getElementById('videoLocal');
+  const avatar = document.getElementById('avatar');
+  const pupilLeft = document.getElementById('pupilLeft');
+  const pupilRight = document.getElementById('pupilRight');
   const mouth = document.getElementById('mouth');
-  const statusText = document.getElementById('status');
+  const btnSpeak = document.getElementById('btnSpeak');
+  const btnToggleVideo = document.getElementById('btnToggleVideo');
+  const log = document.getElementById('log');
 
-  let recognition;
+  let recognition = null;
+  let audioStream = null;
+  let videoStream = null;
   let speaking = false;
+  let videoOn = false;
 
-  async function initMicPermission() {
+  // Ağız animasyonu aç kapa
+  function animateMouth(open) {
+    mouth.style.height = open ? '50px' : '30px';
+  }
+
+  // Göz hareketi rastgele
+  function moveEyes() {
+    if (speaking) return;
+    const x = Math.random() * 6 - 3;
+    const y = Math.random() * 4 - 2;
+    pupilLeft.style.transform = `translate(${x}px, ${y}px)`;
+    pupilRight.style.transform = `translate(${x}px, ${y}px)`;
+  }
+  setInterval(moveEyes, 2000);
+
+  // Log mesaj ekle ve kaydır
+  function logMessage(text) {
+    log.textContent += '\n' + text;
+    log.scrollTop = log.scrollHeight;
+  }
+
+  // Bot cevabı sesiyle
+  function botReply(text) {
+    // Basit demo cevaplar
+    let response = "Üzgünüm, anlayamadım.";
+    const lower = text.toLowerCase();
+    if(lower.includes("merhaba")) response = "Merhaba! Sana nasıl yardımcı olabilirim?";
+    else if(lower.includes("nasılsın")) response = "İyiyim, teşekkür ederim. Sen nasılsın?";
+    else if(lower.includes("görüşürüz") || lower.includes("hoşça kal")) {
+      response = "Görüşmek üzere! İyi günler.";
+    }
+    
+    logMessage("🤖 ChatNova: " + response);
+
+    const utter = new SpeechSynthesisUtterance(response);
+    utter.lang = 'tr-TR';
+    utter.onstart = () => animateMouth(true);
+    utter.onend = () => animateMouth(false);
+    speechSynthesis.speak(utter);
+  }
+
+  // Mikrofon izin kontrol ve açma
+  async function startAudio() {
+    if(audioStream) return audioStream;
     try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-      statusText.textContent = "İzin verildi. Konuşmak için basılı tut.";
-    } catch (err) {
-      statusText.textContent = "❌ Mikrofon izni reddedildi.";
-      speakBtn.disabled = true;
+      audioStream = await navigator.mediaDevices.getUserMedia({audio:true});
+      return audioStream;
+    } catch(e) {
+      alert("Lütfen mikrofon iznini verin.");
+      return null;
     }
   }
 
-  initMicPermission();
-
-  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = 'tr-TR';
-    recognition.interimResults = false;
-
-    recognition.onresult = async (event) => {
-      const userText = event.results[0][0].transcript;
-      statusText.textContent = "İşleniyor...";
-      mouth.style.height = '25px';
-
-      try {
-        const botResponse = await sendToGeminiAPI(userText);
-        await speak(botResponse);
-        statusText.textContent = "Konuşmak için basılı tut.";
-      } catch(e) {
-        statusText.textContent = "Hata: " + e.message;
+  // Kamera aç/kapa
+  async function toggleVideo() {
+    if(videoOn){
+      if(videoStream){
+        videoStream.getTracks().forEach(t=>t.stop());
+        videoStream = null;
       }
-    };
-
-    recognition.onerror = (e) => {
-      statusText.textContent = "Hata: " + e.error;
-      speaking = false;
-      mouth.style.height = '25px';
-    };
-
-    recognition.onend = () => {
-      speaking = false;
-      mouth.style.height = '25px';
-      if (statusText.textContent === "Dinleniyor...") {
-        statusText.textContent = "Konuşmak için basılı tut.";
-      }
-    };
-  } else {
-    alert("Tarayıcınız ses tanımayı desteklemiyor.");
+      videoLocal.style.display = "none";
+      avatar.style.display = "block";
+      btnToggleVideo.textContent = "📹 Görüntüyü Aç";
+      videoOn = false;
+      return;
+    }
+    try {
+      videoStream = await navigator.mediaDevices.getUserMedia({video:{width:320, height:240}, audio:false});
+      videoLocal.srcObject = videoStream;
+      videoLocal.style.display = "block";
+      avatar.style.display = "none";
+      btnToggleVideo.textContent = "📹 Görüntüyü Kapat";
+      videoOn = true;
+    } catch(e) {
+      alert("Lütfen kamera iznini verin.");
+    }
   }
 
-  function speak(text) {
-    return new Promise((resolve) => {
-      const synth = window.speechSynthesis;
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = 'tr-TR';
-      mouth.style.height = '45px';
-      utter.onend = () => {
-        mouth.style.height = '25px';
-        resolve();
+  // Sesli tanıma başlat
+  function startRecognition(){
+    if(!recognition){
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if(!SpeechRecognition){
+        alert("Tarayıcınız ses tanımayı desteklemiyor.");
+        return null;
+      }
+      recognition = new SpeechRecognition();
+      recognition.lang = 'tr-TR';
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        status.textContent = "🎧 Dinleniyor...";
+        speaking = true;
+        animateMouth(true);
       };
-      synth.speak(utter);
-    });
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        logMessage("👤 Sen: " + transcript);
+        botReply(transcript);
+      };
+      recognition.onerror = (e) => {
+        console.error("Ses tanıma hatası:", e.error);
+        if(e.error === "not-allowed" || e.error === "permission-denied"){
+          alert("Mikrofon izni reddedildi.");
+        }
+      };
+      recognition.onend = () => {
+        status.textContent = "Basılı tutup konuşmaya devam edebilirsiniz.";
+        speaking = false;
+        animateMouth(false);
+      };
+    }
+    recognition.start();
   }
 
-  speakBtn.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (recognition && !speaking) {
-      recognition.start();
-      speaking = true;
-      mouth.style.height = '45px';
-      statusText.textContent = "🎧 Dinleniyor...";
-    }
-  });
-
-  speakBtn.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    if (recognition && speaking) {
+  // Sesli tanımayı durdur
+  function stopRecognition(){
+    if(recognition){
       recognition.stop();
       speaking = false;
-      mouth.style.height = '25px';
-      statusText.textContent = "Cevap hazırlanıyor...";
-    }
-  });
-
-  // Gözleri rastgele hareket ettirme animasyonu
-  setInterval(() => {
-    const eyes = document.querySelectorAll('.pupil');
-    eyes.forEach(p => {
-      const x = Math.random() * 6 - 3;
-      const y = Math.random() * 6 - 3;
-      p.style.transform = `translate(${x}px, ${y}px)`;
-    });
-  }, 2000);
-
-  // Gemini API çağrısı
-  async function sendToGeminiAPI(message) {
-    const apiKey = "AIzaSyDpsZ-u_GZuHJfh5G9NnRTPs0yVN6k2bLI"; // API anahtarın (güvenli değil, sadece demo)
-
-    // Örnek Gemini REST API endpoint ve body yapısı
-    // Gerçek endpoint ve parametreleri Google Docs'dan kontrol et.
-
-    const endpoint = "https://generativelanguage.googleapis.com/v1beta2/models/chat-bison-001:generateMessage?key=" + apiKey;
-
-    const body = {
-      "prompt": {
-        "messages": [
-          {"author": "user", "content": {"text": message}}
-        ]
-      },
-      "temperature": 0.7,
-      "candidateCount": 1,
-      "topP": 0.8,
-      "topK": 40
-    };
-
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-
-    if (!response.ok) {
-      throw new Error("API hatası: " + response.status);
-    }
-
-    const data = await response.json();
-
-    if(data.candidates && data.candidates.length > 0) {
-      return data.candidates[0].message.content.text;
-    } else {
-      return "Üzgünüm, cevap alınamadı.";
+      animateMouth(false);
     }
   }
+
+  // Basılı tut konuş butonu işlemleri
+  btnSpeak.addEventListener('mousedown', async e => {
+    e.preventDefault();
+    await startAudio();
+    startRecognition();
+  });
+  btnSpeak.addEventListener('touchstart', async e => {
+    e.preventDefault();
+    await startAudio();
+    startRecognition();
+  });
+
+  btnSpeak.addEventListener('mouseup', e => {
+    e.preventDefault();
+    stopRecognition();
+  });
+  btnSpeak.addEventListener('touchend', e => {
+    e.preventDefault();
+    stopRecognition();
+  });
+
+  btnToggleVideo.addEventListener('click', toggleVideo);
+
 </script>
 </body>
-  </html>
+</html>
