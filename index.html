@@ -3,74 +3,80 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>NovaTalk - Basılı Tut Konuş & Görüntülü Arama</title>
+<title>Basılı Tut Konuş & Görüntülü Arama</title>
 <style>
   body {
-    margin:0; font-family: Arial, sans-serif; background:#e0f7fa;
-    display:flex; flex-direction: column; align-items: center; justify-content: flex-start;
-    min-height: 100vh; padding: 10px 10px 30px;
+    font-family: Arial, sans-serif;
+    background: #e0f7fa;
+    margin: 0; padding: 20px;
+    display: flex; flex-direction: column; align-items: center;
   }
-  header {
-    width: 100%; background:#00796b; color:#fff; padding: 18px 0; font-size: 24px; text-align:center;
-    user-select:none;
-  }
-  #app {
-    background: #fff; width: 380px; max-width: 95vw; border-radius: 15px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
-    margin-top: 20px; padding: 20px; box-sizing: border-box;
-  }
-  #status {
-    font-size: 18px; color: #004d40; min-height: 24px; margin-bottom: 15px;
-    user-select:none; text-align:center;
+  h1 {
+    color: #00796b;
   }
   video {
-    width: 100%; max-width: 320px; height: 240px; border-radius: 15px; background:#000;
-    object-fit: cover; margin: 0 auto 15px auto; display: none;
+    width: 320px;
+    height: 240px;
+    background: black;
+    border-radius: 15px;
+    display: none;
   }
   #avatar {
-    width: 120px; height: 120px; border-radius: 50%; background:#26a69a; position: relative;
+    margin-top: 15px;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: #26a69a;
+    position: relative;
     box-shadow: inset 0 0 8px #00796b;
-    margin: 0 auto 15px auto; display: none;
+    display: none;
   }
   .eye {
-    width: 22px; height: 22px; background:#fff; border-radius: 50%; position: absolute; top: 40px;
+    width: 22px; height: 22px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 40px;
     box-shadow: inset 0 0 4px #444;
   }
   .eye.left { left: 30px; }
   .eye.right { right: 30px; }
   .pupil {
-    width: 10px; height: 10px; background:#004d40; border-radius: 50%; position: absolute; top: 6px; left: 6px;
-    transition: all 0.2s ease;
+    width: 10px; height: 10px;
+    background: #004d40;
+    border-radius: 50%;
+    position: absolute;
+    top: 6px; left: 6px;
   }
   #mouth {
-    position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-    width: 60px; height: 30px; border-radius: 0 0 40px 40px / 0 0 50px 50px;
+    position: absolute;
+    bottom: 30px; left: 50%;
+    transform: translateX(-50%);
+    width: 60px; height: 30px;
+    border-radius: 0 0 40px 40px / 0 0 50px 50px;
     background: #004d40;
     transition: height 0.15s ease;
   }
-  #btns {
-    display: flex; justify-content: center; gap: 15px; margin-bottom: 10px;
-    flex-wrap: wrap;
-  }
-  button {
-    background: #00796b; color: white; border: none; padding: 12px 20px;
-    font-size: 16px; border-radius: 30px; cursor: pointer; user-select:none;
-    box-shadow: 0 5px #004d40;
-    transition: transform 0.1s ease, background-color 0.3s ease;
-    min-width: 140px;
-  }
-  button:active {
-    transform: scale(0.95);
-    box-shadow: 0 2px #004d40;
+  #status {
+    margin-top: 15px;
+    font-size: 18px;
+    color: #004d40;
+    min-height: 24px;
+    user-select: none;
+    text-align: center;
   }
   #talkButton {
-    width: 140px; height: 60px; border-radius: 50px;
-    background: #009688; border: none; color: white; font-size: 20px;
-    cursor: pointer; user-select:none;
+    margin-top: 20px;
+    width: 160px;
+    height: 60px;
+    background: #009688;
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 20px;
+    cursor: pointer;
+    user-select: none;
     box-shadow: 0 6px #00796b;
-    transition: background-color 0.2s ease;
-    display: none;
-    margin: 0 auto 10px auto;
+    transition: background-color 0.3s;
   }
   #talkButton.active {
     background: #004d40;
@@ -79,76 +85,104 @@
   #talkButton:active {
     transform: scale(0.95);
   }
+  #permissionButton {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background: #ffa000;
+    border: none;
+    border-radius: 30px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+    display: none;
+  }
   #log {
-    width: 100%; max-width: 360px; height: 140px; background: #f0f4f4;
-    border-radius: 10px; overflow-y: auto; padding: 10px;
-    font-size: 14px; color: #004d40; white-space: pre-wrap;
-    box-sizing: border-box;
+    margin-top: 20px;
+    width: 340px;
+    max-width: 90vw;
+    height: 140px;
+    background: #f0f4f4;
+    border-radius: 10px;
+    overflow-y: auto;
+    padding: 10px;
+    font-size: 14px;
+    color: #004d40;
+    white-space: pre-wrap;
     user-select: text;
   }
-  #securityNote {
-    font-size: 12px; color: #555; margin-top: 12px; text-align: center;
-    user-select:none;
-  }
-  #permissionButton {
-    display: none;
-    background: #ffa000;
-    color: #fff;
-    font-weight: bold;
-    margin: 15px auto;
-    min-width: 180px;
+  #btnStartCall, #btnEndCall {
+    margin-top: 20px;
+    width: 160px;
+    height: 45px;
+    font-size: 16px;
+    border: none;
     border-radius: 30px;
+    cursor: pointer;
+    user-select: none;
+  }
+  #btnStartCall {
+    background: #00796b;
+    color: white;
+  }
+  #btnEndCall {
+    background: #e53935;
+    color: white;
+    display: none;
+  }
+  #securityNote {
+    margin-top: 12px;
+    font-size: 12px;
+    color: #555;
+    text-align: center;
+    user-select:none;
   }
 </style>
 </head>
 <body>
 
-<header>NovaTalk - Basılı Tut Konuş & Görüntülü Arama</header>
+<h1>NovaTalk Basılı Tut Konuş & Görüntülü Arama</h1>
 
-<div id="app">
-  <div id="status">Arama başlatmak için butona basın.</div>
-  <video id="videoLocal" autoplay playsinline muted></video>
+<video id="videoLocal" autoplay playsinline muted></video>
 
-  <div id="avatar">
-    <div class="eye left"><div class="pupil" id="pupilLeft"></div></div>
-    <div class="eye right"><div class="pupil" id="pupilRight"></div></div>
-    <div id="mouth"></div>
-  </div>
-
-  <div id="btns">
-    <button id="btnStartCall">📹 Görüntülü Aramayı Başlat</button>
-    <button id="btnEndCall" style="background:#e53935; display:none;">🔴 Aramayı Bitir</button>
-  </div>
-
-  <button id="talkButton">🎙 Basılı Tut Konuş</button>
-  <button id="permissionButton">🔔 İzinleri Ver</button>
-
-  <div id="log">📝 Sohbet logları burada görünecek...</div>
-
-  <div id="securityNote">🔒 Mikrofon ve kamera izinleri yalnızca siz başlattığınızda aktif olur. Verileriniz asla kaydedilmez veya paylaşılmaz.</div>
+<div id="avatar">
+  <div class="eye left"><div class="pupil"></div></div>
+  <div class="eye right"><div class="pupil"></div></div>
+  <div id="mouth"></div>
 </div>
 
+<div id="status">Lütfen "Görüntülü Aramayı Başlat" butonuna tıklayın.</div>
+
+<button id="btnStartCall">📹 Görüntülü Aramayı Başlat</button>
+<button id="btnEndCall">🔴 Aramayı Bitir</button>
+
+<button id="talkButton">🎙 Basılı Tut Konuş</button>
+<button id="permissionButton">🔔 İzinleri Ver</button>
+
+<div id="log">📝 Sohbet logları burada görünecek...</div>
+<div id="securityNote">🔒 Mikrofon ve kamera izinleri sadece siz başlattığınızda aktif olur.</div>
+
 <script>
+  const videoLocal = document.getElementById('videoLocal');
+  const avatar = document.getElementById('avatar');
+  const mouth = document.getElementById('mouth');
   const status = document.getElementById('status');
   const btnStartCall = document.getElementById('btnStartCall');
   const btnEndCall = document.getElementById('btnEndCall');
   const talkButton = document.getElementById('talkButton');
   const permissionButton = document.getElementById('permissionButton');
-  const videoLocal = document.getElementById('videoLocal');
-  const avatar = document.getElementById('avatar');
-  const pupilLeft = document.getElementById('pupilLeft');
-  const pupilRight = document.getElementById('pupilRight');
-  const mouth = document.getElementById('mouth');
   const log = document.getElementById('log');
+  const pupilLeft = document.querySelector('.eye.left .pupil');
+  const pupilRight = document.querySelector('.eye.right .pupil');
 
   let stream = null;
   let isCalling = false;
   let isTalking = false;
   let recognition = null;
 
-  // Göz hareketi
+  // Basit göz hareketi
   function moveEyes() {
-    if(isTalking) return;
+    if (isTalking) return;
     const x = Math.random() * 6 - 3;
     const y = Math.random() * 4 - 2;
     pupilLeft.style.transform = `translate(${x}px, ${y}px)`;
@@ -156,23 +190,23 @@
   }
   setInterval(moveEyes, 2000);
 
-  // Ağız animasyonu
+  // Ağız animasyonu aç/kapa
   function animateMouth(open) {
     mouth.style.height = open ? '50px' : '30px';
   }
 
-  // Log ekle
+  // Log yazma
   function logMessage(text) {
     log.textContent += '\n' + text;
     log.scrollTop = log.scrollHeight;
   }
 
-  // İzinleri kontrol et ve gerekiyorsa izin butonunu göster
+  // İzin kontrol
   async function checkPermissions() {
     try {
       const mic = await navigator.permissions.query({name: 'microphone'});
       const cam = await navigator.permissions.query({name: 'camera'});
-      if(mic.state === 'granted' && cam.state === 'granted'){
+      if(mic.state === 'granted' && cam.state === 'granted') {
         permissionButton.style.display = 'none';
         return true;
       } else {
@@ -185,16 +219,14 @@
     }
   }
 
-  // İzinleri isteme
+  // İzin isteme
   async function requestPermissions() {
     try {
-      stream = await navigator.mediaDevices.getUserMedia({audio:true, video:true});
-      if(stream){
-        stream.getTracks().forEach(track => track.stop());
-        permissionButton.style.display = 'none';
-        logMessage('✅ İzinler verildi.');
-        status.textContent = 'İzinler verildi, arama başlatabilirsiniz.';
-      }
+      const s = await navigator.mediaDevices.getUserMedia({audio:true, video:true});
+      s.getTracks().forEach(t => t.stop());
+      permissionButton.style.display = 'none';
+      logMessage('✅ İzinler verildi.');
+      status.textContent = 'İzinler verildi, görüntülü aramayı başlatabilirsiniz.';
     } catch(e) {
       alert('Lütfen mikrofon ve kamera izinlerini verin.');
       logMessage('❌ İzin verilmedi.');
@@ -215,7 +247,7 @@
     speak(response);
   }
 
-  // Bot konuşma (sesli cevap)
+  // Bot sesli cevap
   function speak(text) {
     if(speechSynthesis.speaking) speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
@@ -254,17 +286,15 @@
       if(event.error === 'not-allowed' || event.error === 'permission-denied') {
         alert("Mikrofon izni yok veya engellendi.");
         endCall();
-      }
-      else if (event.error === 'aborted' || event.error === 'no-speech') {
-        // doğal bitiş
-      }
-      else {
+      } else if (event.error === 'aborted' || event.error === 'no-speech') {
+        // Doğal bitiş
+      } else {
         logMessage("⚠️ Ses tanıma hatası: " + event.error);
       }
     };
 
     recognition.onend = () => {
-      if(isTalking){
+      if(isTalking) {
         recognition.start();
       } else {
         status.textContent = "Arama açık. Basılı tut konuş.";
@@ -276,7 +306,7 @@
 
   // Ses tanımayı durdur
   function stopRecognition() {
-    if(recognition){
+    if(recognition) {
       recognition.stop();
       recognition = null;
       status.textContent = "Arama açık. Basılı tut konuş.";
@@ -286,12 +316,11 @@
   // Arama başlat
   async function startCall() {
     const permsOk = await checkPermissions();
-    if(!permsOk){
+    if(!permsOk) {
       status.textContent = "Lütfen önce izinleri verin.";
       permissionButton.style.display = 'inline-block';
       return;
     }
-
     try {
       stream = await navigator.mediaDevices.getUserMedia({audio:true, video:true});
       videoLocal.srcObject = stream;
@@ -327,7 +356,7 @@
     logMessage("🔴 Arama sonlandırıldı.");
   }
 
-  // Basılı tut konuşma mantığı
+  // Basılı tut konuşma
   talkButton.addEventListener('mousedown', () => {
     if(!isCalling) return;
     if(!isTalking){
@@ -337,7 +366,6 @@
       startRecognition();
     }
   });
-
   talkButton.addEventListener('mouseup', () => {
     if(!isCalling) return;
     if(isTalking){
@@ -347,27 +375,24 @@
       stopRecognition();
     }
   });
-
-  // Dokunmatik cihazlar için touch events
-  talkButton.addEventListener('touchstart', (e) => {
+  // Dokunmatik için
+  talkButton.addEventListener('touchstart', e => {
     e.preventDefault();
     talkButton.dispatchEvent(new Event('mousedown'));
   });
-
-  talkButton.addEventListener('touchend', (e) => {
+  talkButton.addEventListener('touchend', e => {
     e.preventDefault();
     talkButton.dispatchEvent(new Event('mouseup'));
   });
 
-  // Butonlar eventleri
   btnStartCall.addEventListener('click', startCall);
   btnEndCall.addEventListener('click', endCall);
   permissionButton.addEventListener('click', requestPermissions);
 
-  // İlk izin kontrolü
+  // Sayfa açılır açılmaz izin kontrolü
   checkPermissions();
 
 </script>
 
 </body>
-</html>
+  </html>
