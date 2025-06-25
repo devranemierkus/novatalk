@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>NovaTalk - Sesli & Görüntülü Arama + İzin</title>
+<title>NovaTalk - Akıllı Sesli & Görüntülü Arama</title>
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -158,7 +158,7 @@
 </head>
 <body>
 
-<header>NovaTalk - Sesli & Görüntülü Arama</header>
+<header>NovaTalk - Akıllı Sesli & Görüntülü Arama</header>
 
 <div id="app">
   <video id="videoLocal" autoplay playsinline muted></video>
@@ -270,7 +270,7 @@
   }
 
   // Ses tanımayı başlat
-  function startRecognition() {
+  function startRecognition(continuous = false) {
     if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
       alert("Tarayıcınız ses tanımayı desteklemiyor.");
       return;
@@ -278,18 +278,21 @@
     recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.lang = 'tr-TR';
     recognition.interimResults = false;
-    recognition.continuous = false;
+    recognition.continuous = continuous;
 
     recognition.onstart = () => {
-      status.textContent = "🎧 Dinleniyor...";
+      status.textContent = continuous ? "🎧 Görüntülü arama: dinleniyor..." : "🎧 Dinleniyor...";
       logMessage("🎧 Dinleme başladı.");
     };
 
     recognition.onresult = (event) => {
-      const lastResult = event.results[event.results.length - 1];
-      const transcript = lastResult[0].transcript.trim();
-      logMessage("👤 Sen: " + transcript);
-      botReply(transcript);
+      for(let i = event.resultIndex; i < event.results.length; i++){
+        if(event.results[i].isFinal){
+          const transcript = event.results[i][0].transcript.trim();
+          logMessage("👤 Sen: " + transcript);
+          botReply(transcript);
+        }
+      }
     };
 
     recognition.onerror = (event) => {
@@ -300,10 +303,15 @@
     };
 
     recognition.onend = () => {
-      if(isTalking) {
-        recognition.start();
-      } else {
-        status.textContent = isCalling ? "Arama açık, basılı tut konuş." : "Hazır.";
+      if(isCalling){
+        if(isVideoCall && recognition.continuous){
+          // Görüntülü aramada sürekli dinle
+          recognition.start();
+        } else if(isTalking){
+          recognition.start();
+        } else {
+          status.textContent = isCalling ? "Arama açık, basılı tut konuş." : "Hazır.";
+        }
       }
     };
 
@@ -313,7 +321,11 @@
   // Ses tanımayı durdur
   function stopRecognition() {
     if(recognition){
+      recognition.onresult = null;
+      recognition.onend = null;
+      recognition.onerror = null;
       recognition.stop();
+      recognition = null;
     }
   }
 
@@ -334,14 +346,16 @@
         videoLocal.srcObject = stream;
         videoLocal.style.display = 'block';
         avatar.style.display = 'none';
+        talkButton.style.display = 'none'; // Görüntülüde basılı tut gereksiz
+        // Görüntülü aramada sürekli dinle
+        startRecognition(true);
       } else {
         videoLocal.style.display = 'none';
         avatar.style.display = 'block';
+        talkButton.style.display = 'inline-block'; // Sesli aramada aktif
       }
       status.textContent = "Arama başladı.";
       logMessage("✅ Arama başladı.");
-      talkButton.style.display = 'inline-block';
-      startRecognition();
     } catch(e) {
       alert("Mikrofon ve kamera erişimi reddedildi.");
       endCall();
@@ -361,6 +375,7 @@
     talkButton.style.display = 'none';
     videoLocal.style.display = 'none';
     avatar.style.display = 'none';
+    isTalking = false;
     stopRecognition();
     if(stream){
       stream.getTracks().forEach(track => track.stop());
@@ -369,35 +384,32 @@
     logMessage("❌ Arama bitti.");
   }
 
-  // Basılı tut konuşma mekanizması
+  // Basılı tut konuşma: sadece sesli aramada mikrofon açılır kapatılır
   talkButton.addEventListener('mousedown', () => {
-    if(!isCalling) return;
+    if(!isCalling || isVideoCall) return; // Görüntülüde basılı tutla değil mikrofon hep açık
     isTalking = true;
     talkButton.classList.add('active');
     status.textContent = "🎙 Konuşuyorsun...";
-    startRecognition();
+    startRecognition(false);
   });
-
   talkButton.addEventListener('mouseup', () => {
-    if(!isCalling) return;
+    if(!isCalling || isVideoCall) return;
     isTalking = false;
     talkButton.classList.remove('active');
     status.textContent = "Arama açık, basılı tut konuş.";
     stopRecognition();
   });
-
   talkButton.addEventListener('touchstart', e => {
     e.preventDefault();
-    if(!isCalling) return;
+    if(!isCalling || isVideoCall) return;
     isTalking = true;
     talkButton.classList.add('active');
     status.textContent = "🎙 Konuşuyorsun...";
-    startRecognition();
+    startRecognition(false);
   });
-
   talkButton.addEventListener('touchend', e => {
     e.preventDefault();
-    if(!isCalling) return;
+    if(!isCalling || isVideoCall) return;
     isTalking = false;
     talkButton.classList.remove('active');
     status.textContent = "Arama açık, basılı tut konuş.";
