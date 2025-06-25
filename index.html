@@ -1,267 +1,201 @@
-<!DOCTYPE html>
-<html lang="tr">
+<!DOCTYPE html><html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>NovaTalk - Tam Sesli Görüntülü Konuşma</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NovaTalk - ChatNova</title>
   <style>
     body {
-      margin: 0; padding:0;
+      margin: 0;
       font-family: Arial, sans-serif;
-      background:#e0f2f1;
+      background: #e0f2f1;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
-      user-select: none;
     }
     #avatar {
-      position: relative;
-      width: 150px; height: 150px;
+      width: 150px;
+      height: 150px;
       background: #26a69a;
       border-radius: 50%;
-      margin-bottom: 10px;
-      box-shadow: 0 0 15px #00796b88;
+      position: relative;
+      margin-bottom: 20px;
     }
     .eye {
-      position: absolute;
-      width: 20px; height: 20px;
+      width: 20px;
+      height: 20px;
       background: white;
       border-radius: 50%;
+      position: absolute;
       top: 40px;
       box-shadow: inset 0 0 3px #444;
     }
     .eye.left { left: 30px; }
     .eye.right { right: 30px; }
     .pupil {
-      position: absolute;
-      width: 8px; height: 8px;
+      width: 8px;
+      height: 8px;
       background: #004d40;
       border-radius: 50%;
-      top: 6px; left: 6px;
-      transition: transform 0.15s ease;
+      position: absolute;
+      top: 6px;
+      left: 6px;
     }
     #mouth {
-      position: absolute;
-      width: 60px; height: 25px;
+      width: 60px;
+      height: 25px;
       background: #004d40;
       border-radius: 0 0 30px 30px;
+      position: absolute;
       bottom: 30px;
       left: 50%;
       transform: translateX(-50%);
       transition: height 0.1s ease;
     }
     #controls {
-      margin-bottom: 10px;
       display: flex;
-      gap: 15px;
-      align-items: center;
+      gap: 10px;
       flex-wrap: wrap;
       justify-content: center;
     }
     button {
-      padding: 12px 24px;
-      border: none;
-      border-radius: 30px;
+      padding: 10px 20px;
       font-size: 16px;
+      border: none;
+      border-radius: 25px;
       cursor: pointer;
-      background-color: #00796b;
+    }
+    #speakBtn, #callBtn, #videoCallBtn, #permissionBtn {
+      background: #00796b;
       color: white;
-      user-select: none;
       touch-action: none;
     }
-    button:disabled {
-      background-color: #4caf5088;
-      cursor: not-allowed;
-    }
     #status {
-      font-size: 16px;
-      color: #004d40;
-      min-height: 22px;
-      text-align: center;
-      max-width: 300px;
-      margin-bottom: 10px;
-    }
-    video {
-      border-radius: 15px;
-      width: 320px;
-      height: 240px;
-      background: black;
-      box-shadow: 0 0 15px #004d4066;
-    }
-    #log {
-      margin-top: 15px;
-      width: 350px;
-      max-height: 140px;
-      overflow-y: auto;
-      background: white;
-      border: 1px solid #004d40;
-      border-radius: 10px;
-      padding: 8px;
+      margin-top: 10px;
       font-size: 14px;
       color: #004d40;
-      box-shadow: inset 0 0 5px #00796b66;
+    }
+    #log {
+      margin-top: 20px;
+      width: 90%;
+      max-width: 400px;
+      background: #ffffffbb;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 14px;
+      max-height: 200px;
+      overflow-y: auto;
     }
   </style>
 </head>
 <body>
-
   <div id="avatar">
     <div class="eye left"><div class="pupil"></div></div>
     <div class="eye right"><div class="pupil"></div></div>
     <div id="mouth"></div>
   </div>
-
   <div id="controls">
-    <button id="btnGetPermissions">Mikrofon & Kamera İzni Ver</button>
-    <button id="btnSpeak" disabled>🎤 Basılı Tut & Konuş</button>
+    <button id="permissionBtn">🎤📹 İzin Ver</button>
+    <button id="callBtn">📞 Sesli Arama</button>
+    <button id="videoCallBtn">📹 Görüntülü Arama</button>
+    <button id="speakBtn">🎤 Basılı Tut & Konuş</button>
   </div>
+  <div id="status">🔒 İzin bekleniyor...</div>
+  <div id="log"></div>  <script>
+    const speakBtn = document.getElementById('speakBtn');
+    const mouth = document.getElementById('mouth');
+    const statusText = document.getElementById('status');
+    const log = document.getElementById('log');
+    const permissionBtn = document.getElementById('permissionBtn');
+    const callBtn = document.getElementById('callBtn');
+    const videoCallBtn = document.getElementById('videoCallBtn');
 
-  <div id="status">İzin bekleniyor...</div>
+    let recognition;
+    let speaking = false;
 
-  <video id="video" autoplay playsinline muted></video>
-
-  <div id="log"></div>
-
-<script>
-  const btnGetPermissions = document.getElementById('btnGetPermissions');
-  const btnSpeak = document.getElementById('btnSpeak');
-  const status = document.getElementById('status');
-  const mouth = document.getElementById('mouth');
-  const pupils = document.querySelectorAll('.pupil');
-  const video = document.getElementById('video');
-  const log = document.getElementById('log');
-
-  let micStream = null;
-  let recognition = null;
-  let speaking = false;
-  let synth = window.speechSynthesis;
-
-  // --- İzin İsteme Butonu ---
-  btnGetPermissions.onclick = async () => {
-    status.textContent = "İzin isteniyor...";
-    try {
-      micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-      video.srcObject = micStream;
-
-      status.textContent = "İzin verildi! Artık konuşabilirsin.";
-      btnGetPermissions.disabled = true;
-      btnSpeak.disabled = false;
-
-      logAdd("İzin verildi: Mikrofon ve Kamera.");
-
-      // SpeechRecognition oluştur
-      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-        recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.lang = 'tr-TR';
-        recognition.interimResults = false;
-
-        recognition.onresult = e => {
-          let text = e.results[0][0].transcript;
-          logAdd("Sen: " + text);
-          botReply(text);
-        };
-
-        recognition.onerror = e => {
-          logAdd("Hata: " + e.error);
-        };
-
-        recognition.onend = () => {
-          speaking = false;
-          mouth.style.height = '25px';
-          status.textContent = "Konuşma bitti.";
-          btnSpeak.textContent = "🎤 Basılı Tut & Konuş";
-        };
-      } else {
-        alert("Tarayıcınız SpeechRecognition desteklemiyor.");
+    permissionBtn.onclick = async () => {
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        permissionBtn.style.display = 'none';
+        statusText.textContent = "✅ İzin verildi.";
+      } catch (err) {
+        statusText.textContent = "❌ Erişim reddedildi.";
       }
-
-    } catch(err) {
-      status.textContent = "❌ İzin reddedildi veya cihaz bulunamadı.";
-      logAdd("İzin reddedildi.");
-      console.error(err);
     }
-  };
 
-  // --- Bot cevap üret ---
-  function botReply(text) {
-    // Buraya AI ya da API bağlantısı eklenebilir, şimdi basit yanıt
-    let yanit = "Üzgünüm, anlayamadım.";
-    if(text.toLowerCase().includes("merhaba")) yanit = "Merhaba, nasıl yardımcı olabilirim?";
-    else if(text.toLowerCase().includes("nasılsın")) yanit = "İyiyim, teşekkürler. Sen nasılsın?";
-    else if(text.toLowerCase().includes("görüşürüz")) yanit = "Görüşmek üzere, hoşça kal!";
-    else if(text.toLowerCase().includes("hava")) yanit = "Bugün hava çok güzel!";
-    else if(text.toLowerCase().includes("teşekkür")) yanit = "Rica ederim.";
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'tr-TR';
+      recognition.interimResults = false;
 
-    logAdd("Bot: " + yanit);
+      recognition.onresult = (event) => {
+        const text = event.results[0][0].transcript;
+        logMessage("🗣️ Sen: " + text);
+        botReply(text);
+      };
 
-    const utter = new SpeechSynthesisUtterance(yanit);
-    utter.lang = 'tr-TR';
-
-    utter.onstart = () => {
-      mouth.style.height = '45px';
-      status.textContent = "Bot konuşuyor...";
-    };
-
-    utter.onend = () => {
-      mouth.style.height = '25px';
-      status.textContent = "Dinlemeye hazır.";
-    };
-
-    synth.speak(utter);
-  }
-
-  // --- Konuşma Başlat / Bırak ---
-  btnSpeak.addEventListener('touchstart', startRecognition);
-  btnSpeak.addEventListener('mousedown', startRecognition);
-
-  btnSpeak.addEventListener('touchend', stopRecognition);
-  btnSpeak.addEventListener('mouseup', stopRecognition);
-  btnSpeak.addEventListener('mouseleave', () => {
-    if(speaking) stopRecognition();
-  });
-
-  function startRecognition(e) {
-    e.preventDefault();
-    if(recognition && !speaking) {
-      recognition.start();
-      speaking = true;
-      mouth.style.height = '45px';
-      btnSpeak.textContent = "🎤 Konuşuyor...";
-      status.textContent = "Dinleniyor...";
-      logAdd("Konuşma başladı.");
+      recognition.onerror = (e) => console.warn('Hata:', e);
+      recognition.onend = () => {
+        speaking = false;
+        mouth.style.height = '25px';
+      };
+    } else {
+      alert("Tarayıcınız konuşma tanımayı desteklemiyor.");
     }
-  }
 
-  function stopRecognition(e) {
-    e.preventDefault();
-    if(recognition && speaking) {
-      recognition.stop();
-      speaking = false;
-      // mouth.style.height normal onend'de zaten düşüyor
-      btnSpeak.textContent = "🎤 Basılı Tut & Konuş";
-      status.textContent = "Konuşma bitti, cevap hazırlanıyor...";
-      logAdd("Konuşma durduruldu.");
+    function botReply(text) {
+      let yanit = "Anlayamadım.";
+      if (text.includes("merhaba")) yanit = "Merhaba!";
+      else if (text.includes("nasılsın")) yanit = "İyiyim, sen nasılsın?";
+      else if (text.includes("görüşürüz")) yanit = "Hoşça kal!";
+
+      const utter = new SpeechSynthesisUtterance(yanit);
+      utter.lang = 'tr-TR';
+      utter.onstart = () => mouth.style.height = '45px';
+      utter.onend = () => mouth.style.height = '25px';
+      window.speechSynthesis.speak(utter);
+
+      logMessage("🤖 Nova: " + yanit);
     }
-  }
 
-  // --- Göz animasyonu ---
-  setInterval(() => {
-    pupils.forEach(p => {
-      const x = Math.random() * 6 - 3;
-      const y = Math.random() * 6 - 3;
-      p.style.transform = `translate(${x}px, ${y}px)`;
+    function logMessage(msg) {
+      const p = document.createElement('div');
+      p.textContent = msg;
+      log.appendChild(p);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    speakBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (recognition && !speaking) {
+        recognition.start();
+        speaking = true;
+        mouth.style.height = '45px';
+        statusText.textContent = "🎧 Dinleniyor...";
+      }
     });
-  }, 2000);
 
-  // --- Log'a yaz ---
-  function logAdd(text) {
-    const time = new Date().toLocaleTimeString();
-    log.innerHTML += `[${time}] ${text}<br>`;
-    log.scrollTop = log.scrollHeight;
-  }
-</script>
+    speakBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      if (recognition && speaking) {
+        recognition.stop();
+        speaking = false;
+        mouth.style.height = '25px';
+        statusText.textContent = "Cevap hazırlanıyor...";
+      }
+    });
 
-</body>
+    callBtn.onclick = () => alert("🔊 Sesli arama başlatıldı (Demo)");
+    videoCallBtn.onclick = () => alert("📹 Görüntülü arama başlatıldı (Demo)");
+
+    setInterval(() => {
+      const eyes = document.querySelectorAll('.pupil');
+      eyes.forEach(p => {
+        const x = Math.random() * 6 - 3;
+        const y = Math.random() * 6 - 3;
+        p.style.transform = `translate(${x}px, ${y}px)`;
+      });
+    }, 2000);
+  </script></body>
 </html>
