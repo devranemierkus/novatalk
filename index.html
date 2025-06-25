@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>NovaTalk - Basılı Tut Sesli & Görüntülü Arama</title>
+<title>NovaTalk - Sesli & Görüntülü Arama + İzin</title>
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -12,13 +12,25 @@
     display: flex; flex-direction: column; align-items: center;
     min-height: 100vh;
   }
-  h1 {
+  header {
+    font-size: 26px;
     color: #00796b;
-    user-select:none;
+    user-select: none;
+    margin-bottom: 10px;
+  }
+  #app {
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    padding: 15px 20px;
+    width: 360px;
+    max-width: 95vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
   video {
-    width: 320px;
-    height: 240px;
+    width: 320px; height: 240px;
     background: black;
     border-radius: 15px;
     display: none;
@@ -68,43 +80,39 @@
     user-select: none;
     text-align: center;
   }
-  #btnStartVideoCall, #btnStartAudioCall, #btnEndCall {
-    margin: 10px 5px 0 5px;
-    padding: 10px 20px;
-    font-size: 16px;
-    border: none;
-    border-radius: 30px;
-    cursor: pointer;
-    user-select: none;
-    color: white;
+  #btns {
+    margin-top: 15px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
   }
-  #btnStartVideoCall {
+  button {
     background: #00796b;
-  }
-  #btnStartAudioCall {
-    background: #009688;
-  }
-  #btnEndCall {
-    background: #e53935;
-    display: none;
-  }
-  #permissionButton {
-    margin-top: 10px;
-    padding: 10px 20px;
-    background: #ffa000;
     border: none;
     border-radius: 30px;
     color: white;
-    font-weight: bold;
+    font-size: 16px;
+    padding: 12px 20px;
     cursor: pointer;
     user-select: none;
-    display: none;
+    box-shadow: 0 5px #004d40;
+    transition: transform 0.1s ease;
+  }
+  button:active:not(:disabled) {
+    transform: scale(0.95);
+    box-shadow: 0 2px #004d40;
+  }
+  button:disabled {
+    background: #999 !important;
+    cursor: not-allowed;
+    box-shadow: none !important;
   }
   #log {
     margin-top: 20px;
-    width: 340px;
-    max-width: 90vw;
-    height: 160px;
+    width: 100%;
+    max-width: 320px;
+    height: 140px;
     background: #f0f4f4;
     border-radius: 10px;
     overflow-y: auto;
@@ -115,8 +123,7 @@
     user-select: text;
   }
   #talkButton {
-    position: fixed;
-    bottom: 25px;
+    margin-top: 20px;
     width: 80px; height: 80px;
     background: #009688;
     border-radius: 50%;
@@ -133,9 +140,6 @@
     background-color: #004d40;
     box-shadow: 0 3px #00221a;
   }
-  #talkButton:active {
-    transform: scale(0.95);
-  }
   #securityNote {
     margin-top: 15px;
     font-size: 12px;
@@ -143,44 +147,56 @@
     text-align: center;
     user-select:none;
   }
+  #copyrightNote {
+    font-size: 11px;
+    color: #aaa;
+    margin-top: 10px;
+    text-align: center;
+    user-select:none;
+  }
 </style>
 </head>
 <body>
 
-<h1>NovaTalk - Basılı Tut Sesli & Görüntülü Arama</h1>
+<header>NovaTalk - Sesli & Görüntülü Arama</header>
 
-<video id="videoLocal" autoplay playsinline muted></video>
+<div id="app">
+  <video id="videoLocal" autoplay playsinline muted></video>
 
-<div id="avatar">
-  <div class="eye left"><div class="pupil"></div></div>
-  <div class="eye right"><div class="pupil"></div></div>
-  <div id="mouth"></div>
+  <div id="avatar">
+    <div class="eye left"><div class="pupil"></div></div>
+    <div class="eye right"><div class="pupil"></div></div>
+    <div id="mouth"></div>
+  </div>
+
+  <div id="status">Önce izinleri verin, sonra arama başlatın.</div>
+
+  <div id="btns">
+    <button id="btnRequestPerms">🔔 İzinleri Ver</button>
+    <button id="btnStartVideoCall" disabled>📹 Görüntülü Arama Başlat</button>
+    <button id="btnStartAudioCall" disabled>📞 Sesli Arama Başlat</button>
+    <button id="btnEndCall" disabled style="background:#e53935;">🔴 Aramayı Bitir</button>
+  </div>
+
+  <button id="talkButton" title="Basılı Tut Konuş">🎙</button>
+
+  <div id="log">📝 Sohbet logları burada görünecek...</div>
+
+  <div id="securityNote">🔒 Mikrofon ve kamera izinleri sadece siz başlattığınızda aktif olur. Verileriniz kaydedilmez.</div>
+  <div id="copyrightNote">© 2025 ChatNova - Tüm hakları saklıdır.</div>
 </div>
-
-<div id="status">Lütfen önce izinleri verip arama başlatın.</div>
-
-<button id="btnStartVideoCall">📹 Görüntülü Aramayı Başlat</button>
-<button id="btnStartAudioCall">📞 Sesli Aramayı Başlat</button>
-<button id="btnEndCall">🔴 Aramayı Bitir</button>
-<button id="permissionButton">🔔 İzinleri Ver</button>
-
-<div id="log">📝 Sohbet logları burada görünecek...</div>
-
-<button id="talkButton" title="Basılı Tut Konuş">🎙</button>
-
-<div id="securityNote">🔒 Mikrofon ve kamera izinleri sadece siz başlattığınızda aktif olur.</div>
 
 <script>
   const videoLocal = document.getElementById('videoLocal');
   const avatar = document.getElementById('avatar');
   const mouth = document.getElementById('mouth');
   const status = document.getElementById('status');
+  const btnRequestPerms = document.getElementById('btnRequestPerms');
   const btnStartVideoCall = document.getElementById('btnStartVideoCall');
   const btnStartAudioCall = document.getElementById('btnStartAudioCall');
   const btnEndCall = document.getElementById('btnEndCall');
-  const permissionButton = document.getElementById('permissionButton');
-  const log = document.getElementById('log');
   const talkButton = document.getElementById('talkButton');
+  const log = document.getElementById('log');
   const pupilLeft = document.querySelector('.eye.left .pupil');
   const pupilRight = document.querySelector('.eye.right .pupil');
 
@@ -190,7 +206,7 @@
   let isTalking = false;
   let recognition = null;
 
-  // Göz hareketi
+  // Göz hareketi rastgele
   function moveEyes() {
     if (isTalking) return;
     const x = Math.random() * 6 - 3;
@@ -205,41 +221,25 @@
     mouth.style.height = open ? '50px' : '30px';
   }
 
-  // Log yazma
+  // Log ekle
   function logMessage(text) {
     log.textContent += '\n' + text;
     log.scrollTop = log.scrollHeight;
   }
 
-  // İzin kontrol
-  async function checkPermissions() {
-    try {
-      const micPerm = await navigator.permissions.query({name:'microphone'});
-      const camPerm = await navigator.permissions.query({name:'camera'});
-      if(micPerm.state === 'granted' && camPerm.state === 'granted') {
-        permissionButton.style.display = 'none';
-        return true;
-      }
-      permissionButton.style.display = 'inline-block';
-      return false;
-    } catch(e) {
-      // Permissions API desteklenmezse izin butonunu göster
-      permissionButton.style.display = 'inline-block';
-      return false;
-    }
-  }
-
-  // İzin isteme
+  // İzinleri iste
   async function requestPermissions() {
     try {
-      let s = await navigator.mediaDevices.getUserMedia({audio:true, video:true});
+      const s = await navigator.mediaDevices.getUserMedia({audio:true, video:true});
       s.getTracks().forEach(t => t.stop());
-      permissionButton.style.display = 'none';
-      logMessage('✅ İzinler verildi.');
-      status.textContent = 'İzinler verildi, arama başlatabilirsiniz.';
-    } catch (e) {
-      alert('Lütfen mikrofon ve kamera izinlerini verin.');
-      logMessage('❌ İzin verilmedi.');
+      status.textContent = "✅ İzinler verildi, arama başlatabilirsiniz.";
+      btnStartAudioCall.disabled = false;
+      btnStartVideoCall.disabled = false;
+      btnRequestPerms.disabled = true;
+      logMessage("✅ İzinler başarıyla verildi.");
+    } catch(e) {
+      alert("Lütfen mikrofon ve kamera izinlerini verin.");
+      logMessage("❌ İzin verilmedi.");
     }
   }
 
@@ -294,18 +294,17 @@
 
     recognition.onerror = (event) => {
       if(event.error === 'not-allowed' || event.error === 'permission-denied') {
-        alert("Mikrofon izni yok veya engellendi.");
+        alert("Mikrofon izni reddedildi.");
         endCall();
-      } else if (event.error === 'aborted' || event.error === 'no-speech') {
-        // doğal bitiş, devam edilebilir
-      } else {
-        logMessage("⚠️ Ses tanıma hatası: " + event.error);
       }
     };
 
     recognition.onend = () => {
-      if(isTalking) recognition.start();
-      else status.textContent = "Arama açık. Basılı tut konuş.";
+      if(isTalking) {
+        recognition.start();
+      } else {
+        status.textContent = isCalling ? "Arama açık, basılı tut konuş." : "Hazır.";
+      }
     };
 
     recognition.start();
@@ -313,44 +312,40 @@
 
   // Ses tanımayı durdur
   function stopRecognition() {
-    if(recognition) {
+    if(recognition){
       recognition.stop();
-      status.textContent = "Arama açık. Basılı tut konuş.";
     }
   }
 
-  // Arama başlat
-  async function startCall(video=false) {
+  // Arama başlat (sesli veya görüntülü)
+  async function startCall(video = false) {
     if(isCalling) return;
-    const permsOk = await checkPermissions();
-    if(!permsOk) {
-      status.textContent = "Lütfen izinleri verin önce.";
-      return;
-    }
-
-    try {
-      stream = await navigator.mediaDevices.getUserMedia(video ? {video:true, audio:true} : {audio:true});
-    } catch(e) {
-      alert("Mikrofon ve/veya kamera izni alınamadı.");
-      return;
-    }
-
     isCalling = true;
     isVideoCall = video;
-    btnStartAudioCall.style.display = 'none';
-    btnStartVideoCall.style.display = 'none';
-    btnEndCall.style.display = 'inline-block';
-    talkButton.style.display = 'inline-block';
-    avatar.style.display = 'block';
+    status.textContent = "Arama başlatılıyor...";
+    btnStartAudioCall.disabled = true;
+    btnStartVideoCall.disabled = true;
+    btnRequestPerms.disabled = true;
+    btnEndCall.disabled = false;
 
-    if(video){
-      videoLocal.srcObject = stream;
-      videoLocal.style.display = 'block';
-    } else {
-      videoLocal.style.display = 'none';
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(video ? {audio:true, video:{width:320,height:240}} : {audio:true});
+      if(video){
+        videoLocal.srcObject = stream;
+        videoLocal.style.display = 'block';
+        avatar.style.display = 'none';
+      } else {
+        videoLocal.style.display = 'none';
+        avatar.style.display = 'block';
+      }
+      status.textContent = "Arama başladı.";
+      logMessage("✅ Arama başladı.");
+      talkButton.style.display = 'inline-block';
+      startRecognition();
+    } catch(e) {
+      alert("Mikrofon ve kamera erişimi reddedildi.");
+      endCall();
     }
-
-    status.textContent = "Arama başladı. Basılı tut konuş.";
   }
 
   // Aramayı bitir
@@ -358,73 +353,66 @@
     if(!isCalling) return;
     isCalling = false;
     isVideoCall = false;
-    if(stream){
-      stream.getTracks().forEach(t => t.stop());
-      stream = null;
-    }
+    status.textContent = "Arama sonlandırıldı.";
+    btnStartAudioCall.disabled = false;
+    btnStartVideoCall.disabled = false;
+    btnRequestPerms.disabled = false;
+    btnEndCall.disabled = true;
+    talkButton.style.display = 'none';
     videoLocal.style.display = 'none';
     avatar.style.display = 'none';
-    btnStartAudioCall.style.display = 'inline-block';
-    btnStartVideoCall.style.display = 'inline-block';
-    btnEndCall.style.display = 'none';
-    talkButton.style.display = 'none';
-    status.textContent = "Arama sonlandırıldı.";
     stopRecognition();
+    if(stream){
+      stream.getTracks().forEach(track => track.stop());
+      stream = null;
+    }
+    logMessage("❌ Arama bitti.");
   }
 
-  // Basılı tut konuşma başlat/durdur
+  // Basılı tut konuşma mekanizması
   talkButton.addEventListener('mousedown', () => {
     if(!isCalling) return;
     isTalking = true;
     talkButton.classList.add('active');
+    status.textContent = "🎙 Konuşuyorsun...";
     startRecognition();
   });
-  talkButton.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if(!isCalling) return;
-    isTalking = true;
-    talkButton.classList.add('active');
-    startRecognition();
-  }, {passive:false});
 
   talkButton.addEventListener('mouseup', () => {
     if(!isCalling) return;
     isTalking = false;
     talkButton.classList.remove('active');
+    status.textContent = "Arama açık, basılı tut konuş.";
     stopRecognition();
   });
-  talkButton.addEventListener('touchend', (e) => {
+
+  talkButton.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if(!isCalling) return;
+    isTalking = true;
+    talkButton.classList.add('active');
+    status.textContent = "🎙 Konuşuyorsun...";
+    startRecognition();
+  });
+
+  talkButton.addEventListener('touchend', e => {
     e.preventDefault();
     if(!isCalling) return;
     isTalking = false;
     talkButton.classList.remove('active');
+    status.textContent = "Arama açık, basılı tut konuş.";
     stopRecognition();
   });
 
-  // İzin butonuna tıklanınca izin iste
-  permissionButton.addEventListener('click', () => {
-    requestPermissions();
-  });
+  // Eventler
+  btnRequestPerms.onclick = requestPermissions;
+  btnStartAudioCall.onclick = () => startCall(false);
+  btnStartVideoCall.onclick = () => startCall(true);
+  btnEndCall.onclick = endCall;
 
-  btnStartVideoCall.addEventListener('click', () => {
-    startCall(true);
-  });
-  btnStartAudioCall.addEventListener('click', () => {
-    startCall(false);
-  });
-  btnEndCall.addEventListener('click', () => {
-    endCall();
-  });
+  // Sayfa yüklendiğinde durum
+  status.textContent = "Önce izinleri verin, sonra arama başlatın.";
 
-  // Sayfa yüklendiğinde izin kontrolü yap
-  window.onload = async () => {
-    const permsOk = await checkPermissions();
-    if(!permsOk){
-      status.textContent = "Lütfen izinleri verin.";
-    } else {
-      status.textContent = "İzinler verilmiş. Arama başlatabilirsiniz.";
-    }
-  };
 </script>
 
 </body>
