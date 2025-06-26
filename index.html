@@ -3,96 +3,165 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>NovaTalk - Sesli & Görüntülü Konuşma</title>
+<title>NovaTalk - Modern Sesli & Görüntülü Chat</title>
 <style>
+  * {
+    box-sizing: border-box;
+  }
   body {
-    margin:0; padding:0;
+    margin: 0; 
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background:#e5ddd5;
-    display:flex;
+    background: #f0f2f5;
+    display: flex;
     flex-direction: column;
+    height: 100vh;
     align-items: center;
     justify-content: center;
-    height:100vh;
+    padding: 20px;
   }
   #avatar {
-    position: relative;
-    width: 160px; height: 160px;
+    width: 160px;
+    height: 160px;
     background: #25d366;
     border-radius: 50%;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    position: relative;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.15);
     margin-bottom: 25px;
+    overflow: hidden;
   }
   .eye {
-    position: absolute;
-    top: 50px;
-    width: 24px; height: 24px;
+    width: 24px;
+    height: 24px;
     background: white;
     border-radius: 50%;
-    box-shadow: inset 0 0 3px #333;
-  }
-  .eye.left { left: 40px; }
-  .eye.right { right: 40px; }
-  .pupil {
     position: absolute;
-    top: 7px; left: 7px;
-    width: 10px; height: 10px;
-    background: #054d27;
+    top: 45px;
+    box-shadow: inset 0 0 4px #222;
+  }
+  .eye.left { left: 45px; }
+  .eye.right { right: 45px; }
+  .pupil {
+    width: 10px;
+    height: 10px;
+    background: #004d40;
     border-radius: 50%;
+    position: absolute;
+    top: 7px;
+    left: 7px;
     transition: transform 0.3s ease;
   }
+  @keyframes blink {
+    0%, 100% { height: 24px; }
+    50% { height: 4px; }
+  }
+  .eye.blink {
+    animation: blink 0.25s linear forwards;
+  }
   #mouth {
+    width: 70px;
+    height: 30px;
+    background: #004d40;
+    border-radius: 0 0 35px 35px;
     position: absolute;
-    bottom: 40px;
+    bottom: 28px;
     left: 50%;
     transform: translateX(-50%);
-    width: 70px; height: 30px;
-    background: #054d27;
-    border-radius: 0 0 40px 40px;
-    transition: height 0.2s ease;
+    transition: height 0.1s ease;
   }
   #controls {
     display: flex;
+    gap: 14px;
     flex-wrap: wrap;
-    gap: 15px;
     justify-content: center;
   }
   button {
-    background: #128c7e;
-    border: none;
-    color: white;
     padding: 14px 28px;
     font-size: 16px;
     border-radius: 30px;
+    border: none;
     cursor: pointer;
     user-select: none;
-    transition: background-color 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    transition: background-color 0.25s ease;
   }
   button:active {
-    background: #075e54;
+    filter: brightness(0.85);
+  }
+  #speakBtn {
+    background: #128C7E;
+    color: white;
+  }
+  #callBtn {
+    background: #075E54;
+    color: white;
+  }
+  #videoCallBtn {
+    background: #25D366;
+    color: white;
+  }
+  #endCallBtn {
+    background: #E53E3E;
+    color: white;
+  }
+  button:disabled {
+    background: #999;
+    cursor: not-allowed;
   }
   #status {
-    margin-top: 15px;
+    margin-top: 18px;
     font-size: 16px;
-    color: #075e54;
-    min-height: 22px;
-    font-weight: 600;
+    color: #333;
+    min-height: 24px;
   }
   #videoContainer {
-    margin-top: 20px;
     display: none;
-    flex-direction: column;
-    align-items: center;
+    margin-top: 24px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.2);
   }
   video {
+    display: block;
     width: 320px;
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    height: 240px;
+    object-fit: cover;
+  }
+  @media (max-width: 480px) {
+    #avatar {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 18px;
+    }
+    .eye {
+      width: 18px;
+      height: 18px;
+      top: 36px;
+    }
+    .eye.left { left: 35px; }
+    .eye.right { right: 35px; }
+    .pupil {
+      width: 7px;
+      height: 7px;
+      top: 5px;
+      left: 5px;
+    }
+    #mouth {
+      width: 50px;
+      height: 20px;
+      bottom: 20px;
+    }
+    button {
+      padding: 12px 20px;
+      font-size: 14px;
+    }
+    #videoContainer video {
+      width: 260px;
+      height: 200px;
+    }
   }
 </style>
 </head>
 <body>
-
   <div id="avatar">
     <div class="eye left"><div class="pupil"></div></div>
     <div class="eye right"><div class="pupil"></div></div>
@@ -101,184 +170,207 @@
 
   <div id="controls">
     <button id="speakBtn">🎤 Bas & Konuş</button>
-    <button id="callBtn">📞 Sesli Arama Başlat</button>
-    <button id="videoCallBtn">📹 Görüntülü Arama Başlat</button>
+    <button id="callBtn">📞 Sesli Arama</button>
+    <button id="videoCallBtn">📹 Görüntülü Arama</button>
     <button id="endCallBtn" disabled>❌ Kapat</button>
   </div>
 
   <div id="status">Mikrofon izni bekleniyor...</div>
 
   <div id="videoContainer">
-    <video id="localVideo" autoplay muted></video>
+    <video id="localVideo" autoplay muted playsinline></video>
   </div>
 
 <script>
-  const OPENAI_API_KEY = "sk-xxx"; // Buraya kendi OpenAI API anahtarını yapıştır
-
-  const speakBtn = document.getElementById("speakBtn");
-  const callBtn = document.getElementById("callBtn");
-  const videoCallBtn = document.getElementById("videoCallBtn");
-  const endCallBtn = document.getElementById("endCallBtn");
-  const statusText = document.getElementById("status");
-  const mouth = document.getElementById("mouth");
-  const videoContainer = document.getElementById("videoContainer");
-  const localVideo = document.getElementById("localVideo");
-  const pupils = document.querySelectorAll(".pupil");
+  const API_URL = "https://b3fa4fcc-001a-453a-bb4c-2bcf25797957-00-3fklgrvl4v8s9.pike.replit.dev/api/chat";
+  const speakBtn = document.getElementById('speakBtn');
+  const callBtn = document.getElementById('callBtn');
+  const videoCallBtn = document.getElementById('videoCallBtn');
+  const endCallBtn = document.getElementById('endCallBtn');
+  const statusText = document.getElementById('status');
+  const mouth = document.getElementById('mouth');
+  const eyes = document.querySelectorAll('.eye');
+  const pupils = document.querySelectorAll('.pupil');
+  const videoContainer = document.getElementById('videoContainer');
+  const localVideo = document.getElementById('localVideo');
 
   let recognition;
-  let mediaStream = null;
-  let inCall = false;
+  let listening = false;
+  let isCalling = false;
+  let isVideoCalling = false;
+  let localStream = null;
 
-  async function askMicPermission() {
+  async function initMic() {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
-      statusText.textContent = "🎤 Mikrofon izni verildi. Konuşmak için basılı tut.";
-    } catch(e) {
+      statusText.textContent = "🎤 Mikrofon izni verildi.";
+      setupSpeechRecognition();
+    } catch (e) {
       statusText.textContent = "❌ Mikrofon izni reddedildi!";
       speakBtn.disabled = true;
-      callBtn.disabled = true;
-      videoCallBtn.disabled = true;
     }
   }
-  askMicPermission();
 
-  function animateMouth(open = false){
-    mouth.style.height = open ? "50px" : "30px";
-  }
-
-  // Gözlere ufak hareket ekle (rastgele)
-  setInterval(() => {
-    pupils.forEach(p => {
-      const x = Math.random() * 6 - 3;
-      const y = Math.random() * 6 - 3;
-      p.style.transform = `translate(${x}px, ${y}px)`;
-    });
-  }, 1500);
-
-  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+  function setupSpeechRecognition() {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      alert("Tarayıcınız sesli tanımayı desteklemiyor.");
+      speakBtn.disabled = true;
+      return;
+    }
     recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = "tr-TR";
+    recognition.lang = 'tr-TR';
     recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
-      animateMouth(true);
+      listening = true;
+      mouth.style.height = '45px';
       statusText.textContent = "🎧 Dinleniyor...";
     };
-
     recognition.onresult = async (event) => {
-      const spokenText = event.results[0][0].transcript;
-      statusText.textContent = `Sen: ${spokenText}`;
-      recognition.stop();
-      animateMouth(false);
-      statusText.textContent = "Bot cevap hazırlıyor...";
+      const text = event.results[0][0].transcript.trim();
+      statusText.textContent = "Yanıt hazırlanıyor...";
+      mouth.style.height = '25px';
+      listening = false;
 
-      // OpenAI ChatGPT API çağrısı
       try {
-        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        const res = await fetch(API_URL, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${OPENAI_API_KEY}`
-          },
-          body: JSON.stringify({
-            model: "gpt-3.5-turbo",
-            messages: [{ role: "user", content: spokenText }]
-          })
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text })
         });
-
-        const data = await response.json();
-        if (data.choices && data.choices.length > 0) {
-          const botReply = data.choices[0].message.content;
-          statusText.textContent = `Bot: ${botReply}`;
-          speak(botReply);
+        const data = await res.json();
+        if (data.reply) {
+          speak(data.reply);
         } else {
-          statusText.textContent = "Bot yanıt veremedi.";
+          speak("Üzgünüm, bir hata oluştu.");
         }
-      } catch(e) {
-        statusText.textContent = "API Hatası: " + e.message;
+      } catch (error) {
+        speak("Sunucuya erişilemiyor.");
+        console.error(error);
       }
     };
-
     recognition.onerror = (e) => {
       statusText.textContent = "Hata: " + e.error;
-      animateMouth(false);
+      listening = false;
+      mouth.style.height = '25px';
     };
-
     recognition.onend = () => {
-      animateMouth(false);
+      listening = false;
+      mouth.style.height = '25px';
+      if (!isCalling && !isVideoCalling) statusText.textContent = "Konuşmak için basılı tutun.";
     };
-  } else {
-    alert("Tarayıcınız SpeechRecognition API desteklemiyor!");
-    speakBtn.disabled = true;
   }
-
-  speakBtn.addEventListener("touchstart", () => {
-    if (inCall) return;
-    recognition.start();
-  });
-  speakBtn.addEventListener("touchend", () => {
-    recognition.stop();
-  });
 
   function speak(text) {
-    animateMouth(true);
     const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = "tr-TR";
-    utter.onend = () => {
-      animateMouth(false);
-    };
+    utter.lang = 'tr-TR';
+    utter.onstart = () => mouth.style.height = '45px';
+    utter.onend = () => mouth.style.height = '25px';
     speechSynthesis.speak(utter);
+    statusText.textContent = "✅ Yanıtlandı.";
   }
 
-  // SESLİ ARAMA (Sadece mikrofon açılır, sesli arama simülasyonu)
-  callBtn.addEventListener("click", async () => {
-    if(inCall) return;
+  function blinkEyes() {
+    eyes.forEach(eye => {
+      eye.classList.add('blink');
+      setTimeout(() => {
+        eye.classList.remove('blink');
+      }, 250);
+    });
+  }
+  setInterval(() => {
+    if (!listening) blinkEyes();
+  }, 5000);
+
+  function randomEyeMove() {
+    pupils.forEach(pupil => {
+      const x = Math.random() * 6 - 3;
+      const y = Math.random() * 4 - 2;
+      pupil.style.transform = `translate(${x}px, ${y}px)`;
+    });
+  }
+  setInterval(() => {
+    if (!listening) randomEyeMove();
+  }, 1500);
+
+  function startListening() {
+    if (!recognition) return;
+    recognition.start();
+  }
+  function stopListening() {
+    if (!recognition) return;
+    recognition.stop();
+  }
+
+  speakBtn.addEventListener('mousedown', () => startListening());
+  speakBtn.addEventListener('touchstart', () => startListening());
+
+  speakBtn.addEventListener('mouseup', () => stopListening());
+  speakBtn.addEventListener('touchend', () => stopListening());
+  speakBtn.addEventListener('touchcancel', () => stopListening());
+
+  // Sesli arama baslat (dummy fonksiyon)
+  callBtn.addEventListener('click', async () => {
+    if (isCalling) return;
+    isCalling = true;
+    statusText.textContent = "Sesli arama başlatıldı (dummy).";
+    endCallBtn.disabled = false;
+    callBtn.disabled = true;
+    videoCallBtn.disabled = true;
+    speakBtn.disabled = true;
+  });
+
+  // Görüntülü arama baslat (dummy fonksiyon)
+  videoCallBtn.addEventListener('click', async () => {
+    if (isVideoCalling) return;
     try {
-      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      inCall = true;
-      statusText.textContent = "📞 Sesli arama aktif";
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localVideo.srcObject = localStream;
+      videoContainer.style.display = "block";
+      isVideoCalling = true;
+      statusText.textContent = "Görüntülü arama başlatıldı (dummy).";
       endCallBtn.disabled = false;
       callBtn.disabled = true;
       videoCallBtn.disabled = true;
+      speakBtn.disabled = true;
+    } catch (e) {
+      alert("Kamera ve mikrofon izni gerekli.");
+      console.error(e);
+    }
+  });
+
+  // Aramayı bitir
+  endCallBtn.addEventListener('click', () => {
+    if (isCalling) {
+      statusText.textContent = "Sesli arama sonlandırıldı.";
+      isCalling = false;
+      endCallBtn.disabled = true;
+      callBtn.disabled = false;
+      videoCallBtn.disabled = false;
+      speakBtn.disabled = false;
+    }
+    if (isVideoCalling) {
+      if(localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+      }
+      localVideo.srcObject = null;
       videoContainer.style.display = "none";
-      speakBtn.disabled = true;
-    } catch (e) {
-      statusText.textContent = "❌ Sesli arama için mikrofon izni gerekli!";
+      statusText.textContent = "Görüntülü arama sonlandırıldı.";
+      isVideoCalling = false;
+      endCallBtn.disabled = true;
+      callBtn.disabled = false;
+      videoCallBtn.disabled = false;
+      speakBtn.disabled = false;
     }
   });
 
-  // GÖRÜNTÜLÜ ARAMA (Mikrofon + Kamera)
-  videoCallBtn.addEventListener("click", async () => {
-    if(inCall) return;
-    try {
-      mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      localVideo.srcObject = mediaStream;
-      videoContainer.style.display = "flex";
-      inCall = true;
-      statusText.textContent = "📹 Görüntülü arama aktif";
-      endCallBtn.disabled = false;
-      callBtn.disabled = true;
-      videoCallBtn.disabled = true;
-      speakBtn.disabled = true;
-    } catch (e) {
-      statusText.textContent = "❌ Kamera ve mikrofon izni gerekli!";
-    }
-  });
-
-  // KAPAT
-  endCallBtn.addEventListener("click", () => {
-    if(!inCall) return;
-    mediaStream.getTracks().forEach(track => track.stop());
-    mediaStream = null;
-    inCall = false;
-    videoContainer.style.display = "none";
-    statusText.textContent = "❌ Arama kapatıldı";
-    endCallBtn.disabled = true;
-    callBtn.disabled = false;
-    videoCallBtn.disabled = false;
-    speakBtn.disabled = false;
-  });
+  // Sayfa yüklendiğinde mikrofon izni iste
+  window.onload = () => {
+    initMic();
+    statusText.textContent = "Mikrofon izni bekleniyor...";
+  };
 </script>
-
 </body>
-</html
+</html>
