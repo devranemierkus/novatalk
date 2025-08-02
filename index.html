@@ -2,93 +2,92 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>NovaTalk 🔍🎙️</title>
+  <title>NovaTalk</title>
   <style>
     body {
-      background-color: #121212;
+      background: #121212;
       color: #eee;
       font-family: 'Segoe UI', sans-serif;
       text-align: center;
       margin: 0;
     }
-    header {
-      background: #1c1c1c;
-      padding: 15px;
-      font-size: 24px;
-      color: #0ff;
+    #modelGate {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #000c;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
     }
-    video {
-      margin-top: 10px;
-      width: 640px;
-      height: 480px;
-      border: 2px solid #0ff;
-    }
+    #video, .hidden { display: none; }
     button {
-      margin: 10px;
-      padding: 10px 20px;
-      background-color: #0ff;
+      background: #0ff;
       border: none;
-      font-size: 16px;
+      padding: 10px 20px;
+      margin: 10px;
       border-radius: 6px;
+      font-size: 16px;
       cursor: pointer;
     }
-    button:hover {
-      background-color: #3cf;
-    }
-    #output {
-      margin-top: 15px;
-      white-space: pre-line;
-      font-size: 18px;
-    }
-    #security {
-      font-size: 14px;
-      color: #f77;
-      margin-top: 8px;
-    }
-    #settings-panel {
-      background: #1a1a1a;
-      border: 1px solid #0ff;
+    #avatar {
       margin: 20px auto;
+      width: 150px;
+    }
+    #avatar.open path.mouth {
+      d: path("M30 70 Q75 90 120 70");
+    }
+    #avatar path.mouth {
+      transition: all 0.3s;
+    }
+    #settings {
+      background: #1f1f1f;
       padding: 10px;
-      width: 300px;
+      margin: 20px;
       border-radius: 10px;
+      display: inline-block;
     }
     select {
-      padding: 6px;
-      margin: 5px;
-      background: #222;
+      background: #333;
       color: #fff;
-      border-radius: 5px;
       border: none;
-    }
-    #pushBtn {
-      margin-top: 10px;
-      background-color: #f00;
-    }
-    #pushBtn:active {
-      background-color: #900;
+      padding: 5px;
+      margin: 5px;
+      border-radius: 5px;
     }
   </style>
 </head>
 <body>
-  <header>NovaTalk – Her Şeyi Tanı & Konuş</header>
+  <div id="modelGate">
+    <h2>🧠 NovaTalk Modeli Yüklenmeli</h2>
+    <button onclick="loadModel()">Modeli Yükle</button>
+  </div>
 
-  <button onclick="initModel()">🔄 Modeli Yükle</button>
-  <button onclick="toggleCamera()">📷 Kamera Aç/Kapa</button><br>
-  <video id="video" autoplay muted playsinline></video>
+  <h1>NovaTalk 🎙️</h1>
+  <svg id="avatar" viewBox="0 0 150 150">
+    <circle cx="75" cy="75" r="70" fill="#00ffaa"/>
+    <circle cx="50" cy="50" r="8" fill="#000">
+      <animate attributeName="r" values="8;10;8" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="100" cy="50" r="8" fill="#000">
+      <animate attributeName="r" values="8;10;8" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <path class="mouth" d="M30 70 Q75 75 120 70" stroke="#000" stroke-width="4" fill="none"/>
+  </svg>
 
-  <div id="output">Objeler burada listelenecek...</div>
-  <div id="security">⚠️ Gizlilik uyarısı: Veri saklanmaz, sadece cihazda çalışır.</div>
+  <video id="video" autoplay playsinline muted></video>
+  <div id="output">🔎 Tanınan nesneler buraya gelecek...</div>
+  <button onmousedown="startSpeech()" onmouseup="stopSpeech()">🎙️ Push-to-Talk</button>
+  <button onclick="startCamera()">📷 Kamera Aç</button>
 
-  <button id="pushBtn" onmousedown="startVoice()" onmouseup="stopVoice()">🎙️ Bas-Konuş</button>
-
-  <div id="settings-panel">
-    <h3>🛠️ Ayarlar</h3>
+  <div id="settings">
+    <strong>Ayarlar</strong><br>
     Tema:
     <select onchange="setTheme(this.value)">
       <option value="dark">Karanlık</option>
       <option value="light">Açık</option>
-    </select><br>
+    </select>
     Dil:
     <select onchange="setLang(this.value)">
       <option value="tr">Türkçe</option>
@@ -98,78 +97,62 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+
   <script>
-    let model, videoStream;
-    let language = "tr";
-    let detectionActive = false;
+    let model, videoStream, language = "tr";
+    const avatar = document.getElementById("avatar");
 
-    async function initModel() {
-      document.getElementById("output").textContent = "Model yükleniyor...";
+    async function loadModel() {
       model = await cocoSsd.load();
-      document.getElementById("output").textContent = "Model yüklendi.";
+      document.getElementById("modelGate").style.display = "none";
+      document.getElementById("video").classList.remove("hidden");
     }
 
-    async function toggleCamera() {
+    async function startCamera() {
       const video = document.getElementById("video");
-      if (videoStream) {
-        video.srcObject.getTracks().forEach(t => t.stop());
-        video.srcObject = null;
-        videoStream = null;
-        detectionActive = false;
-        document.getElementById("output").textContent = "Kamera kapatıldı.";
-        return;
-      }
-      try {
-        videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = videoStream;
-        detectionActive = true;
-        detectObjects(video);
-      } catch (e) {
-        document.getElementById("output").textContent = "Kamera izni reddedildi.";
-      }
+      videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = videoStream;
+      detectFrame(video);
     }
 
-    async function detectObjects(video) {
-      if (!model || !detectionActive) return;
+    async function detectFrame(video) {
       const predictions = await model.detect(video);
-      let out = "";
+      let output = "";
       predictions.forEach(p => {
-        const name = (language === "tr") ? trLabel(p.class) : p.class;
-        out += `${name} – %${Math.round(p.score * 100)}\n`;
+        output += `${p.class} – %${Math.round(p.score * 100)}\n`;
       });
-      document.getElementById("output").textContent = out || "Nesne algılanamadı.";
-      requestAnimationFrame(() => detectObjects(video));
+      document.getElementById("output").textContent = output || "👀 Nesne algılanamadı.";
+      requestAnimationFrame(() => detectFrame(video));
     }
 
-    function trLabel(label) {
-      const dict = {
-        "person": "İnsan", "dog": "Köpek", "cat": "Kedi",
-        "book": "Kitap", "car": "Araba", "chair": "Sandalye",
-        "cell phone": "Telefon", "bottle": "Şişe"
-      };
-      return dict[label] || label;
+    async function getGeminiReply(prompt) {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=AIzaSyDZExSLyr82JwvL_icGlT0tlL1mB9BH6C4`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      });
+      const data = await res.json();
+      const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Yanıt alınamadı.";
+      return reply;
     }
 
-    function startVoice() {
-      const synth = window.speechSynthesis;
-      const text = document.getElementById("output").textContent;
-      const utter = new SpeechSynthesisUtterance(text);
+    async function startSpeech() {
+      avatar.classList.add("open");
+      const prompt = document.getElementById("output").textContent;
+      const response = await getGeminiReply(prompt);
+      const utter = new SpeechSynthesisUtterance(response);
       utter.lang = (language === "tr") ? "tr-TR" : "en-US";
-      synth.speak(utter);
+      speechSynthesis.speak(utter);
     }
 
-    function stopVoice() {
-      window.speechSynthesis.cancel();
+    function stopSpeech() {
+      speechSynthesis.cancel();
+      avatar.classList.remove("open");
     }
 
     function setTheme(theme) {
-      if (theme === "light") {
-        document.body.style.background = "#fefefe";
-        document.body.style.color = "#111";
-      } else {
-        document.body.style.background = "#121212";
-        document.body.style.color = "#eee";
-      }
+      document.body.style.background = theme === "light" ? "#eee" : "#121212";
+      document.body.style.color = theme === "light" ? "#111" : "#eee";
     }
 
     function setLang(lang) {
