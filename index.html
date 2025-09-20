@@ -1,110 +1,356 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <title>NovaTalk v3</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #121212;
-      color: #f0f0f0;
-      text-align: center;
-      margin: 0;
-      padding: 0;
-    }
-    .container {
-      margin-top: 40px;
-    }
-    .btn {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      border: none;
-      margin: 10px;
-      font-size: 16px;
-      cursor: pointer;
-      background-color: #292929;
-      color: #fff;
-      box-shadow: 0 0 10px #4CAF50;
-      transition: transform 0.2s ease;
-    }
-    .btn:hover {
-      transform: scale(1.1);
-      background-color: #4CAF50;
-    }
-    #avatar {
-      margin-top: 20px;
-      width: 120px;
-      height: 120px;
-      border-radius: 50%;
-      background: url('https://i.imgur.com/your-avatar.gif') no-repeat center center / cover;
-      animation: blink 6s infinite;
-    }
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      49% { opacity: 0.6; }
-      50% { opacity: 0.9; }
-    }
-    .response {
-      margin-top: 20px;
-      padding: 10px;
-      background: #1d1d1d;
-      border-radius: 10px;
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yapay Zeka Sesli Asistan</title>
+    <!-- Google Fonts ve Font Awesome İkonları -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- CSS KODLARI --- */
+        :root {
+            --primary-color: #00aaff;
+            --background-color: #121212;
+            --surface-color: #1e1e1e;
+            --text-color: #e0e0e0;
+            --user-bubble-color: #005f8b;
+            --ai-bubble-color: #333333;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background-color: var(--surface-color);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+
+        .header h1 {
+            font-weight: 600;
+        }
+
+        .header p {
+            font-weight: 300;
+            color: #a0a0a0;
+        }
+
+        .avatar-container {
+            position: relative;
+            align-self: center;
+            margin: 30px 0;
+        }
+
+        #ai-avatar {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 4px solid var(--primary-color);
+            box-shadow: 0 0 20px var(--primary-color);
+            object-fit: cover;
+            transition: all 0.3s ease;
+        }
+
+        .status-dot {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 20px;
+            height: 20px;
+            background-color: #4caf50;
+            border-radius: 50%;
+            border: 3px solid var(--surface-color);
+        }
+
+        .status-dot.listening {
+            background-color: #ff5252;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(255, 82, 82, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 82, 82, 0); }
+        }
+
+        .chat-container {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            height: 250px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .chat-bubble {
+            max-width: 80%;
+            padding: 12px 18px;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .chat-bubble.user {
+            background-color: var(--user-bubble-color);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+
+        .chat-bubble.ai {
+            background-color: var(--ai-bubble-color);
+            color: var(--text-color);
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .controls {
+            padding: 20px;
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+
+        #status-text {
+            font-size: 0.9rem;
+            color: #a0a0a0;
+            margin-bottom: 15px;
+            min-height: 20px;
+        }
+
+        #mic-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: none;
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 170, 255, 0.4);
+        }
+
+        #mic-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 170, 255, 0.6);
+        }
+
+        #mic-btn.listening {
+            background-color: #ff5252;
+            box-shadow: 0 4px 15px rgba(255, 82, 82, 0.4);
+            animation: mic-pulse 1.5s infinite;
+        }
+
+        @keyframes mic-pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <div id="avatar"></div>
-    <button class="btn" onclick="startCamera()">📷</button>
-    <button class="btn" onclick="toggleMic()">🎤</button>
-    <div class="response" id="responseBox">Yanıt bekleniyor...</div>
-  </div>
 
-  <script>
-    function startCamera() {
-      navigator.mediaDevices.getUserMedia({ video: true })
-        .then(stream => {
-          document.getElementById("responseBox").innerText = "Kamera çalışıyor!";
-        })
-        .catch(error => {
-          document.getElementById("responseBox").innerText = "Kamera erişimi başarısız.";
-          console.error(error);
-        });
-    }
+    <!-- --- HTML KODLARI --- -->
+    <div class="container">
+        <div class="header">
+            <h1>Yapay Zeka Asistanı</h1>
+            <p>Benimle sesli olarak sohbet edebilirsiniz</p>
+        </div>
 
-    let isRecording = false;
-    function toggleMic() {
-      if (!isRecording) {
-        isRecording = true;
-        document.getElementById("responseBox").innerText = "Dinleniyor...";
-        // Gerçek konuşma algılama API'si bağlanabilir burada
-        fetch("https://generative.googleapis.com/v1beta/gemini-pro:generateContent", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "AIzaSyDZExSLyr82JwvL_icGlT0tlL1mB9BH6C4"
-          },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: "Merhaba nasılsın?" }] }]
-          })
-        })
-        .then(response => response.json())
-        .then(data => {
-          document.getElementById("responseBox").innerText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Yanıt alınamadı.";
-        })
-        .catch(error => {
-          document.getElementById("responseBox").innerText = "API hatası oluştu.";
-          console.error(error);
+        <div class="avatar-container">
+            <!-- Avatarın normal ve konuşma animasyonları JavaScript ile yönetilecek -->
+            <img src="https://mir-s3-cdn-cf.behance.net/project_modules/disp/351817103254989.5f4924970923a.gif" id="ai-avatar" alt="Yapay Zeka Avatarı">
+            <div class="status-dot" id="status-dot"></div>
+        </div>
+
+        <div class="chat-container" id="chat-container">
+            <!-- Sohbet mesajları buraya eklenecek -->
+        </div>
+        
+        <div class="controls">
+            <p id="status-text">Başlamak için mikrofon simgesine dokunun</p>
+            <button id="mic-btn">
+                <i class="fas fa-microphone"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- JAVASCRIPT KODLARI ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // HTML elementlerini seçme
+            const micBtn = document.getElementById('mic-btn');
+            const statusText = document.getElementById('status-text');
+            const chatContainer = document.getElementById('chat-container');
+            const aiAvatar = document.getElementById('ai-avatar');
+            const statusDot = document.getElementById('status-dot');
+
+            // Avatar görsellerinin URL'leri
+            const idleAvatar = "https://mir-s3-cdn-cf.behance.net/project_modules/disp/351817103254989.5f4924970923a.gif";
+            const talkingAvatar = "https://i.pinimg.com/originals/1f/d3/0d/1fd30d2a8a8c0a876a392b4506c11c4c.gif";
+
+            let isListening = false;
+
+            // Tarayıcı desteğini kontrol et
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const synthesis = window.speechSynthesis;
+
+            if (!SpeechRecognition || !synthesis) {
+                statusText.textContent = "Üzgünüm, tarayıcınız bu teknolojiyi desteklemiyor.";
+                micBtn.disabled = true;
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'tr-TR';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            // Kullanıcı arayüzünü güncelleyen fonksiyon
+            function addChatBubble(message, sender) {
+                const bubble = document.createElement('div');
+                bubble.classList.add('chat-bubble', sender);
+                bubble.textContent = message;
+                chatContainer.appendChild(bubble);
+                chatContainer.scrollTop = chatContainer.scrollHeight; // Otomatik aşağı kaydır
+            }
+
+            // Yapay zekanın konuşma fonksiyonu
+            function speak(text) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'tr-TR';
+                
+                // Konuşma başlayınca avatarı değiştir
+                utterance.onstart = () => {
+                    aiAvatar.src = talkingAvatar;
+                };
+
+                // Konuşma bitince avatarı eski haline getir
+                utterance.onend = () => {
+                    aiAvatar.src = idleAvatar;
+                };
+
+                synthesis.speak(utterance);
+            }
+
+            // Yapay zeka cevap mantığı
+            function getAIResponse(userText) {
+                userText = userText.toLowerCase();
+                let response = "Anlayamadım, tekrar eder misin?";
+
+                if (userText.includes("merhaba") || userText.includes("selam")) {
+                    response = "Merhaba, size nasıl yardımcı olabilirim?";
+                } else if (userText.includes("nasılsın")) {
+                    response = "Harikayım, sorduğun için teşekkürler! Sen nasılsın?";
+                } else if (userText.includes("iyiyim")) {
+                    response = "Bunu duyduğuma sevindim!";
+                } else if (userText.includes("saat kaç")) {
+                    const now = new Date();
+                    const hours = now.getHours();
+                    const minutes = now.getMinutes().toString().padStart(2, '0');
+                    response = `Saat şu an ${hours}:${minutes}.`;
+                } else if (userText.includes("adın ne") || userText.includes("kimsin")) {
+                    response = "Ben Gemini tarafından geliştirilmiş bir yapay zeka asistanıyım.";
+                } else if (userText.includes("hikaye anlat")) {
+                    response = "Bir varmış, bir yokmuş. Uzak diyarlarda yaşayan cesur bir gezgin, kayıp hazinenin peşine düşmüş. Dağları aşmış, denizleri geçmiş ve sonunda parlayan bir sandık bulmuş. İçini açtığında ise en büyük hazinenin bilgi olduğunu görmüş.";
+                } else if (userText.includes("teşekkürler") || userText.includes("sağ ol")) {
+                    response = "Rica ederim, başka bir isteğin var mı?";
+                }
+
+                return response;
+            }
+
+            // Konuşma tanıma sonuçları
+            recognition.onresult = (event) => {
+                const userSpeech = event.results[0][0].transcript;
+                addChatBubble(userSpeech, 'user');
+                
+                const aiResponse = getAIResponse(userSpeech);
+                
+                setTimeout(() => {
+                    addChatBubble(aiResponse, 'ai');
+                    speak(aiResponse);
+                }, 500); // Küçük bir bekleme süresi
+            };
+
+            // Dinleme bittiğinde
+            recognition.onspeechend = () => {
+                stopListening();
+            };
+            
+            recognition.onerror = (event) => {
+                statusText.textContent = "Bir hata oluştu. Lütfen tekrar deneyin.";
+                stopListening();
+            }
+
+            function startListening() {
+                isListening = true;
+                micBtn.classList.add('listening');
+                statusDot.classList.add('listening');
+                statusText.textContent = "Sizi dinliyorum...";
+                recognition.start();
+            }
+
+            function stopListening() {
+                isListening = false;
+                micBtn.classList.remove('listening');
+                statusDot.classList.remove('listening');
+                statusText.textContent = "Tekrar konuşmak için mikrofona dokunun";
+                recognition.stop();
+            }
+
+            // Mikrofon butonuna tıklama olayı
+            micBtn.addEventListener('click', () => {
+                if (isListening) {
+                    stopListening();
+                } else {
+                    startListening();
+                }
+            });
+
+            // Başlangıç mesajı
+            setTimeout(() => {
+                const welcomeMessage = "Merhaba! Size nasıl yardımcı olabilirim?";
+                addChatBubble(welcomeMessage, 'ai');
+                speak(welcomeMessage);
+            }, 1000);
         });
-      } else {
-        isRecording = false;
-        document.getElementById("responseBox").innerText = "Dinleme durduruldu.";
-      }
-    }
-  </script>
+    </script>
 </body>
 </html>
