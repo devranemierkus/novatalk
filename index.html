@@ -3,354 +3,208 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Yapay Zeka Asistanı</title>
+    <title>AI Çekirdeği OS</title>
+    <!-- Puter.js Kütüphanesi -->
+    <script src="https://js.puter.com/v2/"></script>
     
+    <!-- Google Fonts ve Font Awesome -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
     <style>
         :root {
             --primary-glow: #00e5ff;
-            --background-start: #141e30;
-            --background-end: #243b55;
-            --surface-color: rgba(20, 30, 40, 0.75);
+            --secondary-glow: #ff00c1;
+            --background-color: #010008;
             --text-color: #f0f0f0;
-            --text-muted: #a0a0b0;
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            background-color: var(--background-color);
+            color: var(--text-color);
             font-family: 'Roboto', sans-serif;
-            background: linear-gradient(135deg, var(--background-start), var(--background-end));
-            color: var(--text-color);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-            overflow: hidden;
         }
-
-        .container {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            max-width: 450px;
-            height: 95vh;
-            max-height: 850px;
-            background: var(--surface-color);
-            border-radius: 30px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
+        /* Puter.js'in arayüzünü kaplaması için */
+        #puter-root {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 10;
         }
-
-        .header {
-            text-align: center;
-            padding: 25px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        /* 3D Arka Plan */
+        #three-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            outline: none;
+            z-index: 1; /* Puter arayüzünün arkasında kalacak */
         }
-
-        .header h1 {
-            font-weight: 700;
-            font-size: 1.8rem;
-            text-shadow: 0 0 10px var(--primary-glow);
-        }
-
-        /* 3D AVATAR İÇİN KONTEYNER */
-        #avatar-container {
-            width: 100%;
-            height: 300px; /* 3D model için alan */
-            margin: 20px 0;
-            cursor: grab;
-        }
-        
-        #avatar-container:grabbing {
-            cursor: grabbing;
-        }
-
-        .chat-container {
-            flex-grow: 1;
-            padding: 10px 20px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column-reverse; /* Mesajlar aşağıdan başlasın */
-            gap: 15px;
-        }
-
-        .chat-bubble {
-            max-width: 85%;
-            padding: 12px 18px;
-            border-radius: 20px;
-            font-size: 1rem;
-            line-height: 1.5;
-            animation: fadeIn 0.5s ease;
-        }
-
-        .chat-bubble.user {
-            background: linear-gradient(135deg, #0052d4, #4364f7, #6fb1fc);
-            color: white;
-            align-self: flex-end;
-            border-bottom-right-radius: 5px;
-        }
-
-        .chat-bubble.ai {
-            background-color: rgba(10, 20, 30, 0.8);
-            color: var(--text-color);
-            align-self: flex-start;
-            border-bottom-left-radius: 5px;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .controls {
-            padding: 20px;
-            text-align: center;
-            background-color: rgba(0, 0, 0, 0.2);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        #status-text {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            margin-bottom: 15px;
-            min-height: 20px;
-            transition: color 0.3s;
-        }
-
-        #mic-btn {
-            width: 75px;
-            height: 75px;
-            border-radius: 50%;
-            border: none;
-            background: var(--primary-glow);
-            color: #111;
-            font-size: 2.2rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 0 25px rgba(0, 229, 255, 0.7);
-        }
-
-        #mic-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 40px rgba(0, 229, 255, 1);
-        }
-        
-        #mic-btn.listening {
-            background-color: #ff3b30;
-            box-shadow: 0 0 30px rgba(255, 59, 48, 0.8);
-            animation: pulse-red 1.5s infinite;
-        }
-
-        @keyframes pulse-red {
-            0% { transform: scale(1.0); }
-            50% { transform: scale(1.08); }
-            100% { transform: scale(1.0); }
+        /* Puter pencerelerinin daha okunaklı olması için hafif arkaplan */
+        .puter-window-content {
+            background-color: rgba(10, 10, 25, 0.6) !important;
+            backdrop-filter: blur(10px);
         }
     </style>
 </head>
 <body>
+    <!-- 3D Sahne için Canvas -->
+    <canvas id="three-canvas"></canvas>
 
-    <div class="container">
-        <div class="header">
-            <h1>3D AI Asistan</h1>
-        </div>
+    <!-- Puter.js'in Arayüzü Yükleyeceği Alan -->
+    <div id="puter-root"></div>
 
-        <div id="avatar-container"></div>
-        
-        <div class="chat-container" id="chat-container"></div>
-        
-        <div class="controls">
-            <p id="status-text">Başlamak için mikrofona dokunun</p>
-            <button id="mic-btn" title="Konuşmak için Tıkla">
-                <i class="fas fa-microphone-alt"></i>
-            </button>
-        </div>
-    </div>
-
-    <!-- Bu script, ES6 modüllerini (import) kullanmamızı sağlar -->
+    <!-- Three.js ve ana kodumuz için ES6 Modül Desteği -->
     <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.164.1/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.164.1/examples/jsm/"
-            }
-        }
+        { "imports": { "three": "https://unpkg.com/three@0.164.1/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.164.1/examples/jsm/" } }
     </script>
 
-    <!-- Ana JavaScript Kodu -->
     <script type="module">
-        // --- 3D KÜTÜPHANELERİNİ İÇE AKTARMA ---
+        // --- GEREKLİ KÜTÜPHANELER ---
         import * as THREE from 'three';
-        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-        // --- HTML ELEMENTLERİ ---
-        const ui = {
-            micBtn: document.getElementById('mic-btn'),
-            statusText: document.getElementById('status-text'),
-            chatContainer: document.getElementById('chat-container'),
-            avatarContainer: document.getElementById('avatar-container')
-        };
-        
-        let isTalking = false;
-        let recognition;
+        // --- PUTER.JS BAŞLATMA ---
+        const puter = await Puter.init();
+        const desktop = await puter.ui.desktop();
         
         // --- 3D SAHNE KURULUMU ---
+        const canvas = document.getElementById('three-canvas');
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, ui.avatarContainer.clientWidth / ui.avatarContainer.clientHeight, 0.1, 1000);
-        camera.position.z = 2.5;
-
-        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-        renderer.setSize(ui.avatarContainer.clientWidth, ui.avatarContainer.clientHeight);
-        ui.avatarContainer.appendChild(renderer.domElement);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 8;
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
         
-        // --- IŞIKLANDIRMA ---
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-        scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
-        directionalLight.position.set(5, 5, 5);
-        scene.add(directionalLight);
+        // --- POST-PROCESSING (PARLAMA EFEKTİ) ---
+        const renderScene = new RenderPass(scene, camera);
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.threshold = 0;
+        bloomPass.strength = 2.0; // Daha belirgin parlama
+        bloomPass.radius = 0.5;
+        const composer = new EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
 
-        // --- KONTROLLER (Mouse ile modeli döndürme) ---
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableZoom = false;
-        controls.enablePan = false;
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-
-        // --- 3D MODELİ YÜKLEME ---
-        const loader = new GLTFLoader();
-        let avatarModel;
-        loader.load(
-            'https://raw.githubusercontent.com/master-infotech/autobot/master/mascot.glb', // Güvenilir bir 3D model linki
-            function (gltf) {
-                avatarModel = gltf.scene;
-                avatarModel.scale.set(1.5, 1.5, 1.5);
-                avatarModel.position.y = -1;
-                scene.add(avatarModel);
-                animate(); // Animasyonu başlat
-            },
-            undefined,
-            function (error) {
-                console.error('3D model yüklenirken bir hata oluştu', error);
-                ui.statusText.textContent = "Avatar yüklenemedi.";
-            }
-        );
-
-        // --- MOUSE HAREKETLERİNİ İZLEME ---
-        const mouse = new THREE.Vector2();
-        window.addEventListener('mousemove', (event) => {
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        // --- 3D AI ÇEKİRDEĞİ (AVATAR) - PROSEDÜREL OLUŞTURMA ---
+        const coreGroup = new THREE.Group();
+        const coreGeo = new THREE.IcosahedronGeometry(1.5, 8);
+        const coreMat = new THREE.MeshStandardMaterial({
+            color: 0x00e5ff, emissive: 0x00e5ff, emissiveIntensity: 2,
+            roughness: 0.2, metalness: 0.8, wireframe: true
         });
+        const core = new THREE.Mesh(coreGeo, coreMat);
+        coreGroup.add(core);
 
+        const rings = [];
+        for (let i = 0; i < 3; i++) {
+            const ringGeo = new THREE.TorusGeometry(2.5 + i * 0.5, 0.05, 16, 100);
+            const ringMat = new THREE.MeshStandardMaterial({
+                color: 0x00e5ff, emissive: 0x00e5ff, emissiveIntensity: 1
+            });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = Math.random() * Math.PI;
+            ring.rotation.y = Math.random() * Math.PI;
+            rings.push(ring);
+            coreGroup.add(ring);
+        }
+        scene.add(coreGroup);
+        
         // --- ANİMASYON DÖNGÜSÜ ---
         const clock = new THREE.Clock();
+        let isSpeaking = false;
         function animate() {
-            requestAnimationFrame(animate);
             const elapsedTime = clock.getElapsedTime();
+            core.rotation.y = elapsedTime * 0.1;
+            rings[0].rotation.x = elapsedTime * 0.2;
+            rings[1].rotation.y = -elapsedTime * 0.3;
+            rings[2].rotation.z = elapsedTime * 0.25;
 
-            if (avatarModel) {
-                // Mouse takibi
-                avatarModel.getObjectByName('Head').rotation.y = THREE.MathUtils.lerp(avatarModel.getObjectByName('Head').rotation.y, mouse.x * 0.5, 0.05);
-                avatarModel.getObjectByName('Head').rotation.x = THREE.MathUtils.lerp(avatarModel.getObjectByName('Head').rotation.x, -mouse.y * 0.2, 0.05);
-                
-                // Nefes alma animasyonu
-                avatarModel.position.y = -1 + Math.sin(elapsedTime * 2) * 0.03;
-
-                // Konuşma animasyonu
-                if (isTalking) {
-                    avatarModel.getObjectByName('Head').rotation.x += Math.sin(elapsedTime * 20) * 0.02;
-                    directionalLight.intensity = THREE.MathUtils.lerp(directionalLight.intensity, 3, 0.1);
-                } else {
-                    directionalLight.intensity = THREE.MathUtils.lerp(directionalLight.intensity, 2, 0.1);
-                }
-            }
-            controls.update();
-            renderer.render(scene, camera);
+            // Konuşma efekti
+            const targetColor = isSpeaking ? new THREE.Color(0xff00c1) : new THREE.Color(0x00e5ff);
+            const targetIntensity = isSpeaking ? 4 : 2;
+            core.material.color.lerp(targetColor, 0.1);
+            core.material.emissive.lerp(targetColor, 0.1);
+            core.material.emissiveIntensity = THREE.MathUtils.lerp(core.material.emissiveIntensity, targetIntensity, 0.1);
+            
+            composer.render();
+            requestAnimationFrame(animate);
         }
+        animate();
 
-        // --- SES TANIMA VE SENTEZLEME ---
+        // --- SES TANIMA VE PUTER.JS ENTEGRASYONU ---
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const synthesis = window.speechSynthesis;
-
-        if (SpeechRecognition && synthesis) {
-            recognition = new SpeechRecognition();
-            recognition.lang = 'tr-TR';
-            recognition.interimResults = false;
-        }
-
+        if (!SpeechRecognition) { alert("Tarayıcınız ses tanımayı desteklemiyor."); }
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'tr-TR';
+        
         function speak(text) {
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'tr-TR';
-            
-            utterance.onstart = () => { isTalking = true; };
-            utterance.onend = () => { isTalking = false; };
-            
-            synthesis.speak(utterance);
-            addChatBubble(text, 'ai');
+            utterance.onstart = () => isSpeaking = true;
+            utterance.onend = () => isSpeaking = false;
+            window.speechSynthesis.speak(text);
         }
 
-        function getAIResponse(userText) {
-             userText = userText.toLowerCase();
-             // (Önceki versiyondaki gibi basit cevap mantığı)
-             if (userText.includes("merhaba")) return "Merhaba, ben 3 boyutlu asistanınız. Size nasıl yardımcı olabilirim?";
-             if (userText.includes("nasılsın")) return "Harika çalışıyorum, bu 3 boyutlu dünyada her şey yolunda! Siz nasılsınız?";
-             if (userText.includes("adın ne")) return "Bana istediğiniz gibi seslenebilirsiniz. Şu an için sadece bir 3D modelim.";
-             if (userText.includes("saat kaç")) {
-                 const now = new Date();
-                 return `Elbette, saat şu an ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}.`;
-             }
-             return "Bu konuyu tam anlayamadım, farklı bir şekilde sorabilir misiniz?";
-        }
-
-        function addChatBubble(message, sender) {
-            const bubble = document.createElement('div');
-            bubble.classList.add('chat-bubble', sender);
-            bubble.textContent = message;
-            
-            const firstChild = ui.chatContainer.firstChild;
-            ui.chatContainer.insertBefore(bubble, firstChild);
-        }
-
-        ui.micBtn.addEventListener('click', () => {
-            if (ui.micBtn.classList.contains('listening')) {
-                recognition.stop();
+        // --- KOMUT İŞLEME MERKEZİ ---
+        async function handleCommand(command) {
+            command = command.toLowerCase();
+            if (command.includes("merhaba") || command.includes("selam")) {
+                speak("Merhaba, AI Çekirdeği OS hizmetinizde.");
+            } else if (command.includes("saati aç")) {
+                speak("Saat uygulaması başlatılıyor.");
+                await puter.ui.launch('clock');
+            } else if (command.includes("not defteri") || command.includes("not aç")) {
+                speak("Not defteri açılıyor.");
+                await puter.ui.launch('notepad');
+            } else if (command.includes("sistem bilgisi")) {
+                speak("Sistem bilgisi penceresi oluşturuluyor.");
+                const infoWindow = await puter.ui.Window.new({
+                    title: 'Sistem Bilgisi',
+                    content: `<div style="padding: 20px; font-size: 1.1rem;">
+                        <p><strong>Asistan:</strong> AI Çekirdeği OS</p>
+                        <p><strong>Grafik Motoru:</strong> Three.js</p>
+                        <p><strong>Arayüz:</strong> Puter.js</p>
+                        <p><strong>Durum:</strong> Aktif ve Göreve Hazır</p>
+                    </div>`,
+                    width: 350,
+                    height: 250
+                });
             } else {
-                recognition.start();
+                speak("Üzgünüm, bu komutu anlayamadım.");
             }
+        }
+        
+        // --- KULLANICI ARAYÜZÜ PENCERESİ ---
+        const aiWindow = await puter.ui.Window.new({
+            title: 'AI Kontrol Paneli',
+            width: 300,
+            height: 200,
+            content: `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 10px; text-align: center;">
+                    <p id="ai-status" style="margin-bottom: 20px;">Komut bekleniyor...</p>
+                    <button id="ai-mic-btn" style="width: 60px; height: 60px; border-radius: 50%; border: none; font-size: 1.8rem; background: var(--primary-glow); color: #010008; cursor: pointer;">
+                        <i class="fas fa-microphone-alt"></i>
+                    </button>
+                </div>
+            `
         });
 
-        recognition.onstart = () => {
-            ui.micBtn.classList.add('listening');
-            ui.statusText.textContent = "Sizi dinliyorum...";
-        };
+        const micButtonInWindow = document.getElementById('ai-mic-btn');
+        const statusTextInWindow = document.getElementById('ai-status');
 
-        recognition.onend = () => {
-            ui.micBtn.classList.remove('listening');
-            ui.statusText.textContent = "Tekrar konuşmak için mikrofona dokunun";
-        };
-        
+        micButtonInWindow.addEventListener('click', () => recognition.start());
+        recognition.onstart = () => { statusTextInWindow.textContent = "Dinliyorum..."; micButtonInWindow.style.background = 'var(--secondary-glow)'; };
+        recognition.onend = () => { statusTextInWindow.textContent = "Komut bekleniyor..."; micButtonInWindow.style.background = 'var(--primary-glow)'; };
         recognition.onresult = (event) => {
-            const userSpeech = event.results[0][0].transcript;
-            addChatBubble(userSpeech, 'user');
-            
-            const aiResponse = getAIResponse(userSpeech);
-            setTimeout(() => speak(aiResponse), 300);
+            const command = event.results[0][0].transcript;
+            handleCommand(command);
         };
     </script>
 </body>
