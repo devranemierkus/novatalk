@@ -3,22 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yapay Zeka Sesli Asistan</title>
-    <!-- Google Fonts ve Font Awesome İkonları -->
+    <title>3D Yapay Zeka Asistanı</title>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
     <style>
-        /* --- CSS KODLARI --- */
         :root {
-            --primary-color: #00aaff;
-            --background-color: #121212;
-            --surface-color: #1e1e1e;
-            --text-color: #e0e0e0;
-            --user-bubble-color: #005f8b;
-            --ai-bubble-color: #333333;
+            --primary-glow: #00e5ff;
+            --background-start: #141e30;
+            --background-end: #243b55;
+            --surface-color: rgba(20, 30, 40, 0.75);
+            --text-color: #f0f0f0;
+            --text-muted: #a0a0b0;
         }
 
         * {
@@ -28,22 +27,29 @@
         }
 
         body {
-            font-family: 'Poppins', sans-serif;
-            background-color: var(--background-color);
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, var(--background-start), var(--background-end));
             color: var(--text-color);
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             padding: 20px;
+            overflow: hidden;
         }
 
         .container {
+            position: relative;
+            z-index: 1;
             width: 100%;
-            max-width: 600px;
-            background-color: var(--surface-color);
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            max-width: 450px;
+            height: 95vh;
+            max-height: 850px;
+            background: var(--surface-color);
+            border-radius: 30px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -51,92 +57,62 @@
 
         .header {
             text-align: center;
-            padding: 20px;
-            background-color: rgba(0, 0, 0, 0.2);
+            padding: 25px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .header h1 {
-            font-weight: 600;
+            font-weight: 700;
+            font-size: 1.8rem;
+            text-shadow: 0 0 10px var(--primary-glow);
         }
 
-        .header p {
-            font-weight: 300;
-            color: #a0a0a0;
+        /* 3D AVATAR İÇİN KONTEYNER */
+        #avatar-container {
+            width: 100%;
+            height: 300px; /* 3D model için alan */
+            margin: 20px 0;
+            cursor: grab;
         }
-
-        .avatar-container {
-            position: relative;
-            align-self: center;
-            margin: 30px 0;
-        }
-
-        #ai-avatar {
-            width: 150px;
-            height: 150px;
-            border-radius: 50%;
-            border: 4px solid var(--primary-color);
-            box-shadow: 0 0 20px var(--primary-color);
-            object-fit: cover;
-            transition: all 0.3s ease;
-        }
-
-        .status-dot {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            width: 20px;
-            height: 20px;
-            background-color: #4caf50;
-            border-radius: 50%;
-            border: 3px solid var(--surface-color);
-        }
-
-        .status-dot.listening {
-            background-color: #ff5252;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.7); }
-            70% { box-shadow: 0 0 0 15px rgba(255, 82, 82, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 82, 82, 0); }
+        
+        #avatar-container:grabbing {
+            cursor: grabbing;
         }
 
         .chat-container {
             flex-grow: 1;
-            padding: 20px;
+            padding: 10px 20px;
             overflow-y: auto;
-            height: 250px;
             display: flex;
-            flex-direction: column;
-            gap: 12px;
+            flex-direction: column-reverse; /* Mesajlar aşağıdan başlasın */
+            gap: 15px;
         }
 
         .chat-bubble {
-            max-width: 80%;
+            max-width: 85%;
             padding: 12px 18px;
             border-radius: 20px;
-            font-size: 0.95rem;
-            line-height: 1.4;
+            font-size: 1rem;
+            line-height: 1.5;
             animation: fadeIn 0.5s ease;
         }
 
         .chat-bubble.user {
-            background-color: var(--user-bubble-color);
+            background: linear-gradient(135deg, #0052d4, #4364f7, #6fb1fc);
             color: white;
             align-self: flex-end;
             border-bottom-right-radius: 5px;
         }
 
         .chat-bubble.ai {
-            background-color: var(--ai-bubble-color);
+            background-color: rgba(10, 20, 30, 0.8);
             color: var(--text-color);
             align-self: flex-start;
             border-bottom-left-radius: 5px;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(15px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
@@ -144,213 +120,238 @@
             padding: 20px;
             text-align: center;
             background-color: rgba(0, 0, 0, 0.2);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         #status-text {
             font-size: 0.9rem;
-            color: #a0a0a0;
+            color: var(--text-muted);
             margin-bottom: 15px;
             min-height: 20px;
+            transition: color 0.3s;
         }
 
         #mic-btn {
-            width: 70px;
-            height: 70px;
+            width: 75px;
+            height: 75px;
             border-radius: 50%;
             border: none;
-            background-color: var(--primary-color);
-            color: white;
-            font-size: 2rem;
+            background: var(--primary-glow);
+            color: #111;
+            font-size: 2.2rem;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0, 170, 255, 0.4);
+            box-shadow: 0 0 25px rgba(0, 229, 255, 0.7);
         }
 
         #mic-btn:hover {
             transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(0, 170, 255, 0.6);
+            box-shadow: 0 0 40px rgba(0, 229, 255, 1);
         }
-
+        
         #mic-btn.listening {
-            background-color: #ff5252;
-            box-shadow: 0 4px 15px rgba(255, 82, 82, 0.4);
-            animation: mic-pulse 1.5s infinite;
+            background-color: #ff3b30;
+            box-shadow: 0 0 30px rgba(255, 59, 48, 0.8);
+            animation: pulse-red 1.5s infinite;
         }
 
-        @keyframes mic-pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
+        @keyframes pulse-red {
+            0% { transform: scale(1.0); }
+            50% { transform: scale(1.08); }
+            100% { transform: scale(1.0); }
         }
     </style>
 </head>
 <body>
 
-    <!-- --- HTML KODLARI --- -->
     <div class="container">
         <div class="header">
-            <h1>Yapay Zeka Asistanı</h1>
-            <p>Benimle sesli olarak sohbet edebilirsiniz</p>
+            <h1>3D AI Asistan</h1>
         </div>
 
-        <div class="avatar-container">
-            <!-- Avatarın normal ve konuşma animasyonları JavaScript ile yönetilecek -->
-            <img src="https://mir-s3-cdn-cf.behance.net/project_modules/disp/351817103254989.5f4924970923a.gif" id="ai-avatar" alt="Yapay Zeka Avatarı">
-            <div class="status-dot" id="status-dot"></div>
-        </div>
-
-        <div class="chat-container" id="chat-container">
-            <!-- Sohbet mesajları buraya eklenecek -->
-        </div>
+        <div id="avatar-container"></div>
+        
+        <div class="chat-container" id="chat-container"></div>
         
         <div class="controls">
-            <p id="status-text">Başlamak için mikrofon simgesine dokunun</p>
-            <button id="mic-btn">
-                <i class="fas fa-microphone"></i>
+            <p id="status-text">Başlamak için mikrofona dokunun</p>
+            <button id="mic-btn" title="Konuşmak için Tıkla">
+                <i class="fas fa-microphone-alt"></i>
             </button>
         </div>
     </div>
 
-    <script>
-        // --- JAVASCRIPT KODLARI ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // HTML elementlerini seçme
-            const micBtn = document.getElementById('mic-btn');
-            const statusText = document.getElementById('status-text');
-            const chatContainer = document.getElementById('chat-container');
-            const aiAvatar = document.getElementById('ai-avatar');
-            const statusDot = document.getElementById('status-dot');
-
-            // Avatar görsellerinin URL'leri
-            const idleAvatar = "https://mir-s3-cdn-cf.behance.net/project_modules/disp/351817103254989.5f4924970923a.gif";
-            const talkingAvatar = "https://i.pinimg.com/originals/1f/d3/0d/1fd30d2a8a8c0a876a392b4506c11c4c.gif";
-
-            let isListening = false;
-
-            // Tarayıcı desteğini kontrol et
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            const synthesis = window.speechSynthesis;
-
-            if (!SpeechRecognition || !synthesis) {
-                statusText.textContent = "Üzgünüm, tarayıcınız bu teknolojiyi desteklemiyor.";
-                micBtn.disabled = true;
-                return;
+    <!-- Bu script, ES6 modüllerini (import) kullanmamızı sağlar -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.164.1/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.164.1/examples/jsm/"
             }
+        }
+    </script>
 
-            const recognition = new SpeechRecognition();
+    <!-- Ana JavaScript Kodu -->
+    <script type="module">
+        // --- 3D KÜTÜPHANELERİNİ İÇE AKTARMA ---
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- HTML ELEMENTLERİ ---
+        const ui = {
+            micBtn: document.getElementById('mic-btn'),
+            statusText: document.getElementById('status-text'),
+            chatContainer: document.getElementById('chat-container'),
+            avatarContainer: document.getElementById('avatar-container')
+        };
+        
+        let isTalking = false;
+        let recognition;
+        
+        // --- 3D SAHNE KURULUMU ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, ui.avatarContainer.clientWidth / ui.avatarContainer.clientHeight, 0.1, 1000);
+        camera.position.z = 2.5;
+
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setSize(ui.avatarContainer.clientWidth, ui.avatarContainer.clientHeight);
+        ui.avatarContainer.appendChild(renderer.domElement);
+        
+        // --- IŞIKLANDIRMA ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
+        directionalLight.position.set(5, 5, 5);
+        scene.add(directionalLight);
+
+        // --- KONTROLLER (Mouse ile modeli döndürme) ---
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableZoom = false;
+        controls.enablePan = false;
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // --- 3D MODELİ YÜKLEME ---
+        const loader = new GLTFLoader();
+        let avatarModel;
+        loader.load(
+            'https://raw.githubusercontent.com/master-infotech/autobot/master/mascot.glb', // Güvenilir bir 3D model linki
+            function (gltf) {
+                avatarModel = gltf.scene;
+                avatarModel.scale.set(1.5, 1.5, 1.5);
+                avatarModel.position.y = -1;
+                scene.add(avatarModel);
+                animate(); // Animasyonu başlat
+            },
+            undefined,
+            function (error) {
+                console.error('3D model yüklenirken bir hata oluştu', error);
+                ui.statusText.textContent = "Avatar yüklenemedi.";
+            }
+        );
+
+        // --- MOUSE HAREKETLERİNİ İZLEME ---
+        const mouse = new THREE.Vector2();
+        window.addEventListener('mousemove', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        // --- ANİMASYON DÖNGÜSÜ ---
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsedTime = clock.getElapsedTime();
+
+            if (avatarModel) {
+                // Mouse takibi
+                avatarModel.getObjectByName('Head').rotation.y = THREE.MathUtils.lerp(avatarModel.getObjectByName('Head').rotation.y, mouse.x * 0.5, 0.05);
+                avatarModel.getObjectByName('Head').rotation.x = THREE.MathUtils.lerp(avatarModel.getObjectByName('Head').rotation.x, -mouse.y * 0.2, 0.05);
+                
+                // Nefes alma animasyonu
+                avatarModel.position.y = -1 + Math.sin(elapsedTime * 2) * 0.03;
+
+                // Konuşma animasyonu
+                if (isTalking) {
+                    avatarModel.getObjectByName('Head').rotation.x += Math.sin(elapsedTime * 20) * 0.02;
+                    directionalLight.intensity = THREE.MathUtils.lerp(directionalLight.intensity, 3, 0.1);
+                } else {
+                    directionalLight.intensity = THREE.MathUtils.lerp(directionalLight.intensity, 2, 0.1);
+                }
+            }
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // --- SES TANIMA VE SENTEZLEME ---
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const synthesis = window.speechSynthesis;
+
+        if (SpeechRecognition && synthesis) {
+            recognition = new SpeechRecognition();
             recognition.lang = 'tr-TR';
             recognition.interimResults = false;
-            recognition.maxAlternatives = 1;
+        }
 
-            // Kullanıcı arayüzünü güncelleyen fonksiyon
-            function addChatBubble(message, sender) {
-                const bubble = document.createElement('div');
-                bubble.classList.add('chat-bubble', sender);
-                bubble.textContent = message;
-                chatContainer.appendChild(bubble);
-                chatContainer.scrollTop = chatContainer.scrollHeight; // Otomatik aşağı kaydır
-            }
-
-            // Yapay zekanın konuşma fonksiyonu
-            function speak(text) {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'tr-TR';
-                
-                // Konuşma başlayınca avatarı değiştir
-                utterance.onstart = () => {
-                    aiAvatar.src = talkingAvatar;
-                };
-
-                // Konuşma bitince avatarı eski haline getir
-                utterance.onend = () => {
-                    aiAvatar.src = idleAvatar;
-                };
-
-                synthesis.speak(utterance);
-            }
-
-            // Yapay zeka cevap mantığı
-            function getAIResponse(userText) {
-                userText = userText.toLowerCase();
-                let response = "Anlayamadım, tekrar eder misin?";
-
-                if (userText.includes("merhaba") || userText.includes("selam")) {
-                    response = "Merhaba, size nasıl yardımcı olabilirim?";
-                } else if (userText.includes("nasılsın")) {
-                    response = "Harikayım, sorduğun için teşekkürler! Sen nasılsın?";
-                } else if (userText.includes("iyiyim")) {
-                    response = "Bunu duyduğuma sevindim!";
-                } else if (userText.includes("saat kaç")) {
-                    const now = new Date();
-                    const hours = now.getHours();
-                    const minutes = now.getMinutes().toString().padStart(2, '0');
-                    response = `Saat şu an ${hours}:${minutes}.`;
-                } else if (userText.includes("adın ne") || userText.includes("kimsin")) {
-                    response = "Ben Gemini tarafından geliştirilmiş bir yapay zeka asistanıyım.";
-                } else if (userText.includes("hikaye anlat")) {
-                    response = "Bir varmış, bir yokmuş. Uzak diyarlarda yaşayan cesur bir gezgin, kayıp hazinenin peşine düşmüş. Dağları aşmış, denizleri geçmiş ve sonunda parlayan bir sandık bulmuş. İçini açtığında ise en büyük hazinenin bilgi olduğunu görmüş.";
-                } else if (userText.includes("teşekkürler") || userText.includes("sağ ol")) {
-                    response = "Rica ederim, başka bir isteğin var mı?";
-                }
-
-                return response;
-            }
-
-            // Konuşma tanıma sonuçları
-            recognition.onresult = (event) => {
-                const userSpeech = event.results[0][0].transcript;
-                addChatBubble(userSpeech, 'user');
-                
-                const aiResponse = getAIResponse(userSpeech);
-                
-                setTimeout(() => {
-                    addChatBubble(aiResponse, 'ai');
-                    speak(aiResponse);
-                }, 500); // Küçük bir bekleme süresi
-            };
-
-            // Dinleme bittiğinde
-            recognition.onspeechend = () => {
-                stopListening();
-            };
+        function speak(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'tr-TR';
             
-            recognition.onerror = (event) => {
-                statusText.textContent = "Bir hata oluştu. Lütfen tekrar deneyin.";
-                stopListening();
-            }
+            utterance.onstart = () => { isTalking = true; };
+            utterance.onend = () => { isTalking = false; };
+            
+            synthesis.speak(utterance);
+            addChatBubble(text, 'ai');
+        }
 
-            function startListening() {
-                isListening = true;
-                micBtn.classList.add('listening');
-                statusDot.classList.add('listening');
-                statusText.textContent = "Sizi dinliyorum...";
+        function getAIResponse(userText) {
+             userText = userText.toLowerCase();
+             // (Önceki versiyondaki gibi basit cevap mantığı)
+             if (userText.includes("merhaba")) return "Merhaba, ben 3 boyutlu asistanınız. Size nasıl yardımcı olabilirim?";
+             if (userText.includes("nasılsın")) return "Harika çalışıyorum, bu 3 boyutlu dünyada her şey yolunda! Siz nasılsınız?";
+             if (userText.includes("adın ne")) return "Bana istediğiniz gibi seslenebilirsiniz. Şu an için sadece bir 3D modelim.";
+             if (userText.includes("saat kaç")) {
+                 const now = new Date();
+                 return `Elbette, saat şu an ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}.`;
+             }
+             return "Bu konuyu tam anlayamadım, farklı bir şekilde sorabilir misiniz?";
+        }
+
+        function addChatBubble(message, sender) {
+            const bubble = document.createElement('div');
+            bubble.classList.add('chat-bubble', sender);
+            bubble.textContent = message;
+            
+            const firstChild = ui.chatContainer.firstChild;
+            ui.chatContainer.insertBefore(bubble, firstChild);
+        }
+
+        ui.micBtn.addEventListener('click', () => {
+            if (ui.micBtn.classList.contains('listening')) {
+                recognition.stop();
+            } else {
                 recognition.start();
             }
-
-            function stopListening() {
-                isListening = false;
-                micBtn.classList.remove('listening');
-                statusDot.classList.remove('listening');
-                statusText.textContent = "Tekrar konuşmak için mikrofona dokunun";
-                recognition.stop();
-            }
-
-            // Mikrofon butonuna tıklama olayı
-            micBtn.addEventListener('click', () => {
-                if (isListening) {
-                    stopListening();
-                } else {
-                    startListening();
-                }
-            });
-
-            // Başlangıç mesajı
-            setTimeout(() => {
-                const welcomeMessage = "Merhaba! Size nasıl yardımcı olabilirim?";
-                addChatBubble(welcomeMessage, 'ai');
-                speak(welcomeMessage);
-            }, 1000);
         });
+
+        recognition.onstart = () => {
+            ui.micBtn.classList.add('listening');
+            ui.statusText.textContent = "Sizi dinliyorum...";
+        };
+
+        recognition.onend = () => {
+            ui.micBtn.classList.remove('listening');
+            ui.statusText.textContent = "Tekrar konuşmak için mikrofona dokunun";
+        };
+        
+        recognition.onresult = (event) => {
+            const userSpeech = event.results[0][0].transcript;
+            addChatBubble(userSpeech, 'user');
+            
+            const aiResponse = getAIResponse(userSpeech);
+            setTimeout(() => speak(aiResponse), 300);
+        };
     </script>
 </body>
 </html>
