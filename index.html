@@ -1,38 +1,51 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
+    <!-- BÖLÜM 1: TEMEL SAYFA BİLGİLERİ VE KÜTÜPHANELER -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Proje Phoenix - AI Arayüzü v4.0 (Stabil)</title>
+    <title>Project Nebula - AI OS</title>
     
-    <!-- Gerekli Fontlar ve İkonlar (CDN üzerinden, her zaman çalışır) -->
+    <!-- Puter.js Kütüphanesi -->
+    <script src="https://js.puter.com/v2/"></script>
+    
+    <!-- Google Fonts ve Font Awesome İkonları -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <style>
-        /* --- BÖLÜM 1: GÖRSEL TASARIM (CSS) --- */
+        /* --- BÖLÜM 2: GÖRSEL TASARIM (CSS) --- */
         
-        /* Değişkenler: Renk paletini buradan kolayca değiştirebilirsin. */
+        /* Renk paleti ve temel tasarım değişkenleri */
         :root {
-            --primary-color: #00e5ff;
-            --listening-color: #ff00c1;
-            --speaking-color: #00ff89;
-            --background-color: #010409;
+            --primary-glow: #00e5ff;
+            --listening-glow: #ff00c1;
+            --speaking-glow: #00ff89;
+            --background-start: #010008;
+            --background-end: #0a0e23;
             --surface-color: rgba(13, 23, 33, 0.85);
             --border-color: rgba(0, 229, 255, 0.2);
             --text-color: #e6edf3;
             --text-muted-color: #7d8590;
         }
 
-        /* Temel Sayfa Ayarları */
+        /* Temel sayfa ve scrollbar ayarları */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body {
+        html {
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-glow) transparent;
+        }
+        body::-webkit-scrollbar { width: 8px; }
+        body::-webkit-scrollbar-track { background: transparent; }
+        body::-webkit-scrollbar-thumb { background-color: var(--primary-glow); border-radius: 20px; }
+        
+        body {
             height: 100vh;
             width: 100vw;
             overflow: hidden;
-            background-color: var(--background-color);
+            background: linear-gradient(135deg, var(--background-start), var(--background-end));
             color: var(--text-color);
             font-family: 'Roboto', sans-serif;
             display: flex;
@@ -40,37 +53,46 @@
             align-items: center;
         }
 
-        /* Hareketli Arka Plan */
-        #animated-bg {
+        /* Dinamik Parçacık Arka Planı */
+        #particle-canvas {
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
             z-index: 1;
-            background-image: 
-                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-            background-size: 50px 50px;
-            animation: moveGrid 10s linear infinite;
+        }
+        
+        /* Puter.js'in ana arayüzü, 3D sahnenin üzerinde olacak */
+        #puter-root {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 10;
         }
 
-        @keyframes moveGrid {
-            from { background-position: 0 0; }
-            to { background-position: -50px -50px; }
+        /* Puter pencerelerine fütüristik görünüm */
+        .puter-window-content {
+            background-color: rgba(10, 20, 40, 0.8) !important;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 229, 255, 0.2);
+        }
+        .puter-window-titlebar {
+            font-family: 'Orbitron', sans-serif !important;
+            background-color: rgba(0, 0, 0, 0.7) !important;
         }
 
-        /* Ana Arayüz Konteyneri */
+        /* Ana Arayüz Konteyneri (Mobil uyumlu) */
         .container {
             position: relative;
-            z-index: 2;
+            z-index: 20; /* Her şeyin üzerinde */
             width: 95%;
-            max-width: 800px;
+            max-width: 900px;
             height: 90vh;
-            max-height: 700px;
+            max-height: 750px;
             background: var(--surface-color);
             border-radius: 20px;
             border: 1px solid var(--border-color);
             backdrop-filter: blur(15px);
-            box-shadow: 0 0 60px rgba(0, 0, 0, 0.7);
+            box-shadow: 0 0 80px rgba(0, 0, 0, 0.8);
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -83,20 +105,21 @@
             align-items: center;
             padding: 15px 25px;
             border-bottom: 1px solid var(--border-color);
-            background: rgba(0,0,0,0.2);
+            background: rgba(0,0,0,0.3);
+            flex-shrink: 0;
         }
         .header h1 {
             font-family: 'Orbitron', sans-serif;
             font-size: 1.5rem;
-            text-shadow: 0 0 10px var(--primary-color);
+            text-shadow: 0 0 10px var(--primary-glow);
         }
-        #clear-chat-btn {
+        .header-buttons button {
             background: none; border: none; color: var(--text-muted-color);
-            font-size: 1.2rem; cursor: pointer; transition: color 0.3s;
+            font-size: 1.2rem; cursor: pointer; transition: color 0.3s; margin-left: 15px;
         }
-        #clear-chat-btn:hover { color: var(--primary-color); }
+        .header-buttons button:hover { color: var(--primary-glow); }
 
-        /* Ana İçerik Alanı (Sohbet ve Avatar) */
+        /* Ana İçerik Alanı (Mobil uyumlu) */
         .main-content {
             flex-grow: 1;
             display: flex;
@@ -109,7 +132,7 @@
             padding: 20px;
             overflow-y: auto;
             display: flex;
-            flex-direction: column-reverse; /* Mesajların aşağıdan başlaması için */
+            flex-direction: column-reverse;
         }
         .chat-bubble {
             max-width: 85%;
@@ -118,103 +141,151 @@
             margin-bottom: 12px;
             opacity: 0;
             transform: translateY(20px);
-            animation: popIn 0.4s forwards;
+            animation: popIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
             position: relative;
+        }
+        .chat-bubble p {
+            margin: 0;
+            padding: 0;
+            white-space: pre-wrap; /* Uzun kelimelerin düzgün kaydırılması için */
+            word-wrap: break-word; /* Kelimeleri kırmak için */
         }
         .chat-bubble.user { align-self: flex-end; background: linear-gradient(135deg, #0052d4, #4364f7); border-bottom-right-radius: 4px; }
         .chat-bubble.ai { align-self: flex-start; background: #1c2b3a; border-bottom-left-radius: 4px; }
         .chat-bubble .timestamp { font-size: 0.7rem; color: var(--text-muted-color); display: block; margin-top: 5px; text-align: right; }
         .chat-bubble .copy-btn {
-            background: none; border: none; color: var(--text-muted-color); cursor: pointer;
+            background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer;
             position: absolute; top: 8px; right: 10px; opacity: 0; transition: opacity 0.3s;
         }
         .chat-bubble.ai:hover .copy-btn { opacity: 1; }
         @keyframes popIn { to { opacity: 1; transform: translateY(0); } }
 
-        /* Avatar Paneli */
+        /* Avatar Paneli (Mobil uyumlu) */
         .avatar-panel {
-            width: 300px;
+            width: 320px;
+            flex-shrink: 0;
             border-left: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             padding: 20px;
+            transition: all 0.3s ease;
         }
 
         /* CSS ile yapılmış Dinamik Avatar */
         #ai-avatar {
-            width: 150px;
-            height: 150px;
+            width: 180px;
+            height: 180px;
             position: relative;
             display: flex;
             justify-content: center;
             align-items: center;
+            margin-bottom: 20px;
         }
         #avatar-core {
-            width: 80%;
-            height: 80%;
-            background: radial-gradient(circle, #fff, var(--primary-color));
+            width: 70%;
+            height: 70%;
+            background: radial-gradient(circle at 30% 30%, #fff, var(--primary-glow));
             border-radius: 50%;
-            box-shadow: 0 0 20px var(--primary-color), 0 0 40px var(--primary-color), inset 0 0 15px #fff;
-            transition: all 0.3s ease-in-out;
-            animation: breathe 4s infinite ease-in-out;
+            box-shadow: 0 0 25px var(--primary-glow), 0 0 50px var(--primary-glow), inset 0 0 20px rgba(255,255,255,0.8);
+            transition: all 0.4s ease-in-out;
+            animation: breathe 5s infinite ease-in-out;
         }
-        #listening-ring {
+        #listening-ring, #speaking-ring {
             position: absolute;
             width: 100%;
             height: 100%;
-            border: 3px solid var(--listening-color);
+            border: 3px solid;
             border-radius: 50%;
-            box-shadow: 0 0 15px var(--listening-color);
             opacity: 0;
             transform: scale(0.8);
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
         }
+        #listening-ring { border-color: var(--listening-glow); box-shadow: 0 0 20px var(--listening-glow); }
+        #speaking-ring { border-color: var(--speaking-glow); box-shadow: 0 0 20px var(--speaking-glow); }
 
-        /* Avatarın Durumları */
-        #ai-avatar.listening #listening-ring { opacity: 1; transform: scale(1); animation: spin 3s linear infinite; }
-        #ai-avatar.speaking #avatar-core { background: radial-gradient(circle, #fff, var(--speaking-color)); box-shadow: 0 0 30px var(--speaking-color), 0 0 60px var(--speaking-color), inset 0 0 20px #fff; animation: pulse 1s infinite; }
+        /* Avatarın Durum Animasyonları */
+        #ai-avatar.listening #listening-ring { opacity: 1; transform: scale(1.1); animation: spin 4s linear infinite; }
+        #ai-avatar.speaking #speaking-ring { opacity: 1; transform: scale(1); animation: pulse 1s infinite; }
+        #ai-avatar.speaking #avatar-core { animation-play-state: paused; transform: scale(1.05); }
         
-        @keyframes breathe { 50% { transform: scale(0.95); } }
-        @keyframes pulse { 50% { transform: scale(1.05); } }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes breathe { 50% { transform: scale(0.92); box-shadow: 0 0 15px var(--primary-glow), 0 0 30px var(--primary-glow), inset 0 0 15px rgba(255,255,255,0.6); } }
+        @keyframes pulse { 50% { transform: scale(1.1); opacity: 0.7; } }
+        @keyframes spin { from { transform: scale(1.1) rotate(0deg); } to { transform: scale(1.1) rotate(360deg); } }
 
         /* Kontrol Butonları ve Durum Yazısı */
         .controls {
             padding: 20px;
             text-align: center;
             border-top: 1px solid var(--border-color);
-            background: rgba(0,0,0,0.2);
+            background: rgba(0,0,0,0.3);
+            flex-shrink: 0;
         }
         #status-text { min-height: 20px; margin-bottom: 15px; color: var(--text-muted-color); font-style: italic; }
         #mic-btn {
-            width: 70px; height: 70px; border-radius: 50%; border: 3px solid var(--primary-color);
+            width: 70px; height: 70px; border-radius: 50%; border: 2px solid var(--primary-color);
             font-size: 2rem; background: transparent; color: var(--primary-color);
-            cursor: pointer; transition: all 0.3s ease;
+            cursor: pointer; transition: all 0.3s ease; text-shadow: 0 0 10px var(--primary-color);
         }
+        #mic-btn:hover { background: rgba(0, 229, 255, 0.1); box-shadow: 0 0 20px var(--primary-color); }
         #mic-btn.listening {
-            background: var(--listening-color); color: white; border-color: var(--listening-color);
-            box-shadow: 0 0 20px var(--listening-color);
+            background: var(--listening-glow); color: white; border-color: var(--listening-glow);
+            box-shadow: 0 0 25px var(--listening-glow); animation: pulse 1.5s infinite;
         }
+
+        /* --- MOBİL UYUMLULUK (RESPONSIVE DESIGN) --- */
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            .avatar-panel {
+                width: 100%;
+                height: 250px;
+                border-left: none;
+                border-top: 1px solid var(--border-color);
+                flex-shrink: 0;
+            }
+            #ai-avatar {
+                width: 120px;
+                height: 120px;
+            }
+            .chat-container {
+                padding: 10px;
+            }
+            .header h1 {
+                font-size: 1.2rem;
+            }
+        }
+
     </style>
 </head>
 <body>
-    <div id="animated-bg"></div>
+    <!-- Hareketli Arka Plan için Canvas Elementi -->
+    <canvas id="particle-canvas"></canvas>
+    
+    <!-- Puter.js'in arayüzü bu elemente yüklenecek -->
+    <div id="puter-root"></div>
 
+    <!-- Ana Arayüz -->
     <div class="container">
         <div class="header">
-            <h1>Proje Phoenix</h1>
-            <button id="clear-chat-btn" title="Sohbeti Temizle"><i class="fas fa-trash-alt"></i></button>
+            <h1>Project Nebula</h1>
+            <div class="header-buttons">
+                <button id="clear-chat-btn" title="Sohbeti Temizle"><i class="fas fa-trash-alt"></i></button>
+            </div>
         </div>
         <div class="main-content">
-            <div class="chat-container" id="chat-container">
-                <!-- Sohbet mesajları buraya eklenecek -->
-            </div>
+            <div class="chat-container" id="chat-container"></div>
             <div class="avatar-panel">
                 <div id="ai-avatar">
                     <div id="avatar-core"></div>
                     <div id="listening-ring"></div>
+                    <div id="speaking-ring"></div>
+                </div>
+                <div id="ai-info" style="text-align:center;">
+                    <h3 style="font-family: 'Orbitron', sans-serif;">AI ÇEKİRDEĞİ</h3>
+                    <p style="color: var(--speaking-glow);">Durum: Aktif</p>
                 </div>
             </div>
         </div>
@@ -225,49 +296,97 @@
     </div>
     
     <script>
-    // --- BÖLÜM 2: JAVASCRIPT - UYGULAMA MANTIĞI ---
+    // --- BÖLÜM 3: JAVASCRIPT - UYGULAMA MANTIĞI ---
 
-    // DOM (HTML elementleri) referanslarını al. Bu, kodun ilerleyen kısımlarında
-    // bu elementlere kolayca erişmemizi sağlar.
-    const ui = {
-        micBtn: document.getElementById('mic-btn'),
-        statusText: document.getElementById('status-text'),
-        chatContainer: document.getElementById('chat-container'),
-        aiAvatar: document.getElementById('ai-avatar'),
-        clearChatBtn: document.getElementById('clear-chat-btn')
-    };
+    // Bu kod, `DOMContentLoaded` olayı içinde çalışarak, tüm HTML elementlerinin
+    // yüklendiğinden emin olur ve hataları önler.
+    document.addEventListener('DOMContentLoaded', () => {
+    
+        // --- Değişkenler ve DOM Referansları ---
+        // Uygulamanın farklı bölümlerinde kullanılacak HTML elementlerini ve durum değişkenlerini tanımla.
+        const ui = {
+            micBtn: document.getElementById('mic-btn'),
+            statusText: document.getElementById('status-text'),
+            chatContainer: document.getElementById('chat-container'),
+            aiAvatar: document.getElementById('ai-avatar'),
+            clearChatBtn: document.getElementById('clear-chat-btn'),
+            particleCanvas: document.getElementById('particle-canvas')
+        };
 
-    // Ses tanıma ve sentezleme API'lerinin tarayıcıda olup olmadığını kontrol et.
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const synthesis = window.speechSynthesis;
-
-    // Eğer tarayıcı desteklemiyorsa, kullanıcıyı bilgilendir ve devam etme.
-    if (!SpeechRecognition || !synthesis) {
-        ui.statusText.textContent = "Üzgünüm, tarayıcınız bu teknolojiyi desteklemiyor.";
-        ui.micBtn.disabled = true;
-    } else {
-        // --- Ses Tanıma Kurulumu ---
-        const recognition = new SpeechRecognition();
-        recognition.lang = 'tr-TR';      // Türkçe tanıma
-        recognition.continuous = false; // Her komuttan sonra dinlemeyi durdurur
-        recognition.interimResults = false; // Sadece kesin sonuçları al
-
-        // --- OLAY DİNLEYİCİLERİ (EVENT LISTENERS) ---
-        // Butonlara tıklandığında ne olacağını belirleyen kodlar.
-        ui.micBtn.addEventListener('click', toggleListening);
-        ui.clearChatBtn.addEventListener('click', clearChat);
-        ui.chatContainer.addEventListener('click', handleChatActions);
-
-        // Ses tanıma olayları
-        recognition.onstart = handleRecognitionStart;
-        recognition.onend = handleRecognitionEnd;
-        recognition.onresult = handleRecognitionResult;
-        recognition.onerror = handleRecognitionError;
-        
-        // --- ANA FONKSİYONLAR ---
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const synthesis = window.speechSynthesis;
+        let recognition;
+        let puter; // Puter.js nesnesini saklamak için
 
         /**
-         * Mikrofonu açıp kapatmayı yönetir.
+         * Uygulamayı başlatan ana fonksiyon.
+         */
+        async function initialize() {
+            if (!SpeechRecognition || !synthesis) {
+                ui.statusText.textContent = "HATA: Tarayıcınız ses teknolojisini desteklemiyor.";
+                ui.micBtn.disabled = true;
+                return;
+            }
+
+            // Puter.js'i başlat
+            try {
+                puter = await Puter.init();
+            } catch (error) {
+                console.error("Puter.js başlatılamadı:", error);
+                // Puter olmadan da devam etmesi için bir fallback düşünülebilir.
+            }
+            
+            setupEventListeners();
+            setupSpeechRecognition();
+            setupParticleCanvas(); // Arka plan animasyonunu başlat
+            
+            // Hoşgeldin mesajı
+            setTimeout(() => {
+                speak("Nebula OS arayüzü başlatıldı. Komutlarınızı bekliyorum.");
+            }, 1000);
+        }
+
+        /**
+         * Tüm buton tıklamaları ve diğer olaylar için dinleyicileri kurar.
+         */
+        function setupEventListeners() {
+            ui.micBtn.addEventListener('click', toggleListening);
+            ui.clearChatBtn.addEventListener('click', clearChat);
+            ui.chatContainer.addEventListener('click', handleChatActions);
+        }
+
+        /**
+         * Ses tanıma motorunu yapılandırır ve olaylarını bağlar.
+         */
+        function setupSpeechRecognition() {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'tr-TR';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onstart = () => {
+                ui.micBtn.classList.add('listening');
+                ui.aiAvatar.classList.add('listening');
+                ui.statusText.textContent = "Dinliyorum...";
+            };
+            recognition.onend = () => {
+                ui.micBtn.classList.remove('listening');
+                ui.aiAvatar.classList.remove('listening');
+                ui.statusText.textContent = "Başlamak için mikrofon butonuna dokunun";
+            };
+            recognition.onresult = (event) => {
+                const userSpeech = event.results[0][0].transcript;
+                addChatBubble(userSpeech, "user");
+                setTimeout(() => processCommand(userSpeech), 500);
+            };
+            recognition.onerror = (event) => {
+                console.error("Ses tanıma hatası:", event.error);
+                ui.statusText.textContent = "Bir hata oluştu: " + event.error;
+            };
+        }
+
+        /**
+         * Dinleme durumunu açıp kapatır.
          */
         function toggleListening() {
             if (ui.micBtn.classList.contains('listening')) {
@@ -276,82 +395,34 @@
                 recognition.start();
             }
         }
-
+        
         /**
-         * Sohbet penceresini temizler.
+         * Sohbet penceresini temizler ve bir sistem mesajı gösterir.
          */
         function clearChat() {
             ui.chatContainer.innerHTML = '';
-            addChatBubble("Sohbet geçmişi temizlendi.", "ai", true);
+            puter.ui.notify('Sohbet geçmişi temizlendi.');
         }
 
         /**
-         * Sohbet balonlarındaki kopyalama butonu gibi eylemleri yönetir.
-         * @param {Event} e - Tıklama olayı
+         * Sohbet balonlarındaki kopyalama butonunu yönetir.
          */
         function handleChatActions(e) {
-            if (e.target.classList.contains('copy-btn')) {
-                const textToCopy = e.target.parentElement.querySelector('p').textContent;
+            if (e.target.closest('.copy-btn')) {
+                const textToCopy = e.target.closest('.chat-bubble').querySelector('p').textContent;
                 navigator.clipboard.writeText(textToCopy).then(() => {
-                    e.target.innerHTML = '<i class="fas fa-check"></i>';
-                    setTimeout(() => {
-                        e.target.innerHTML = '<i class="fas fa-copy"></i>';
-                    }, 1500);
+                    const icon = e.target.closest('.copy-btn').querySelector('i');
+                    icon.className = 'fas fa-check';
+                    setTimeout(() => { icon.className = 'fas fa-copy'; }, 2000);
                 });
             }
         }
-
-        // --- SES TANIMA İŞLEYİCİ FONKSİYONLARI ---
-
-        /**
-         * Ses tanıma başladığında arayüzü günceller.
-         */
-        function handleRecognitionStart() {
-            ui.micBtn.classList.add('listening');
-            ui.aiAvatar.classList.add('listening');
-            ui.statusText.textContent = "Sizi dinliyorum...";
-        }
-
-        /**
-         * Ses tanıma bittiğinde arayüzü varsayılan durumuna döndürür.
-         */
-        function handleRecognitionEnd() {
-            ui.micBtn.classList.remove('listening');
-            ui.aiAvatar.classList.remove('listening');
-            ui.statusText.textContent = "Başlamak için mikrofon butonuna dokunun";
-        }
-
-        /**
-         * Ses tanıma bir sonuç ürettiğinde çalışır.
-         * @param {SpeechRecognitionEvent} event - Tanıma sonucu verilerini içerir.
-         */
-        function handleRecognitionResult(event) {
-            const userSpeech = event.results[0][0].transcript;
-            addChatBubble(userSpeech, "user");
-            
-            // Yapay zekanın düşünmesi için küçük bir gecikme ekle
-            setTimeout(() => {
-                const aiResponse = getAIResponse(userSpeech);
-                speak(aiResponse);
-            }, 500);
-        }
-
-        /**
-         * Ses tanıma sırasında bir hata oluşursa çalışır.
-         * @param {SpeechRecognitionErrorEvent} event - Hata bilgilerini içerir.
-         */
-        function handleRecognitionError(event) {
-            console.error("Ses tanıma hatası:", event.error);
-            ui.statusText.textContent = "Bir hata oluştu: " + event.error;
-        }
-
-        // --- YARDIMCI FONKSİYONLAR ---
-
+        
         /**
          * Yapay zekanın sesli cevap vermesini sağlar ve arayüzü günceller.
-         * @param {string} text - Yapay zekanın söyleyeceği metin.
          */
         function speak(text) {
+            addChatBubble(text, "ai");
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'tr-TR';
             
@@ -359,88 +430,168 @@
             utterance.onend = () => ui.aiAvatar.classList.remove('speaking');
             
             synthesis.speak(utterance);
-            addChatBubble(text, "ai");
         }
 
         /**
          * Sohbet penceresine yeni bir mesaj balonu ekler.
-         * @param {string} message - Mesaj içeriği.
-         * @param {string} sender - 'user' veya 'ai'.
-         * @param {boolean} isSystem - Bu bir sistem mesajı mı?
          */
-        function addChatBubble(message, sender, isSystem = false) {
+        function addChatBubble(message, sender) {
             const bubble = document.createElement('div');
             bubble.classList.add('chat-bubble', sender);
-            
             const time = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 
             let content = `<p>${message}</p><span class="timestamp">${time}</span>`;
-            if(sender === 'ai' && !isSystem) {
-                content += '<button class="copy-btn" title="Metni Kopyala"><i class="fas fa-copy"></i></button>';
+            if (sender === 'ai') {
+                content += `<button class="copy-btn" title="Metni Kopyala"><i class="fas fa-copy"></i></button>`;
             }
             bubble.innerHTML = content;
-            
-            ui.chatContainer.prepend(bubble); // Yeni mesajı en üste ekler (çünkü flex-direction: column-reverse)
+            ui.chatContainer.prepend(bubble);
         }
 
-        // --- BÖLÜM 3: YAPAY ZEKA MANTIĞI ---
+        // --- BÖLÜM 4: KOMUT İŞLEME MERKEZİ ---
 
         /**
-         * Kullanıcının söylediği metni analiz eder ve uygun bir cevap üretir.
-         * @param {string} userText - Kullanıcının söylediği komut.
-         * @returns {string} - Yapay zekanın cevabı.
+         * Kullanıcının komutunu analiz eder ve ilgili eylemi tetikler.
          */
-        function getAIResponse(userText) {
-            const command = userText.toLowerCase();
+        async function processCommand(command) {
+            const cmd = command.toLowerCase();
+            let response = "Üzgünüm, bu komutu anlayamadım.";
 
             // Google Arama Komutu
-            if (command.startsWith("google'da ara")) {
-                const query = command.replace("google'da ara", "").trim();
-                if(query) {
+            if (cmd.startsWith("google'da ara")) {
+                const query = command.substring(14).trim();
+                if (query) {
                     window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, '_blank');
-                    return `'${query}' için Google'da arama yapılıyor...`;
+                    response = `'${query}' için Google yeni bir sekmede açılıyor.`;
                 }
             }
-
-            // YouTube Açma Komutu
-            if (command.includes("youtube'u aç")) {
-                window.open('https://www.youtube.com', '_blank');
-                return "YouTube yeni bir sekmede açılıyor.";
+            // Puter.js Komutları
+            else if (cmd.includes("hesap makinesi")) {
+                response = "Hesap makinesi uygulaması başlatılıyor.";
+                puter.ui.launch('calculator').catch(e => response = "Uygulama başlatılamadı.");
             }
-
-            // Hava Durumu Komutu
-            if (command.includes("hava durumu")) {
-                 window.open('https://www.mgm.gov.tr/', '_blank');
-                 return "Hava durumu için MGM sayfası açılıyor.";
+            else if (cmd.includes("not defteri")) {
+                response = "Not defteri başlatılıyor.";
+                puter.ui.launch('notepad').catch(e => response = "Uygulama başlatılamadı.");
             }
-
-            // Diğer Basit Komutlar
-            switch (true) {
-                case command.includes("merhaba"):
-                case command.includes("selam"):
-                    return "Merhaba! Ben Phoenix, size nasıl yardımcı olabilirim?";
-                case command.includes("nasılsın"):
-                    return "Harika çalışıyorum, sorduğun için teşekkürler!";
-                case command.includes("saat kaç"):
-                    return `Şu an saat tam olarak ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}.`;
-                case command.includes("bugün günlerden ne"):
-                    const days = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
-                    return `Bugün günlerden ${days[new Date().getDay()]}.`;
-                case command.includes("şaka yap"):
-                    return "Adamın biri varmış, ikinci dönem düzeltmiş.";
-                case command.includes("teşekkür ederim"):
-                case command.includes("sağ ol"):
-                    return "Rica ederim, her zaman yardıma hazırım!";
-                default:
-                    return "Üzgünüm, bu komutu anlayamadım. Lütfen farklı bir şey deneyin.";
+            else if (cmd.includes("terminali aç")) {
+                response = "Terminal uygulaması başlatılıyor.";
+                puter.ui.launch('terminal').catch(e => response = "Uygulama başlatılamadı.");
             }
+            else if (cmd.includes("dosya yöneticisi")) {
+                response = "Dosya yöneticisi açılıyor.";
+                puter.ui.launch('file-explorer').catch(e => response = "Uygulama başlatılamadı.");
+            }
+            else if (cmd.includes("pencereleri kapat")) {
+                response = "Tüm pencereler kapatılıyor.";
+                const allWindows = await puter.ui.Window.getAll();
+                allWindows.forEach(win => win.close());
+            }
+            // Diğer Komutlar
+            else {
+                const staticResponses = {
+                    "merhaba": "Merhaba! Ben Nebula. Size nasıl yardımcı olabilirim?",
+                    "nasılsın": "Sistemlerim tamamen çalışır durumda. Sizin için hazırım!",
+                    "saat kaç": `Şu an saat tam olarak ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}.`,
+                    "bugün günlerden ne": `Bugün günlerden ${new Date().toLocaleDateString('tr-TR', { weekday: 'long' })}.`,
+                    "şaka yap": "Bilgisayarlar neden espri yapamaz? Çünkü her şeyi çok ciddiye alırlar!",
+                    "teşekkür ederim": "Rica ederim, görevim bu!",
+                };
+                for (const key in staticResponses) {
+                    if (cmd.includes(key)) {
+                        response = staticResponses[key];
+                        break;
+                    }
+                }
+            }
+            speak(response);
+        }
+        
+        // --- BÖLÜM 5: ARKA PLAN ANİMASYONU ---
+        /**
+         * Canvas üzerinde fareye duyarlı parçacık animasyonunu kurar ve çalıştırır.
+         */
+        function setupParticleCanvas() {
+            const canvas = ui.particleCanvas;
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            let particlesArray;
+            const mouse = { x: null, y: null, radius: (canvas.height / 80) * (canvas.width / 80) };
+
+            window.addEventListener('mousemove', event => {
+                mouse.x = event.x;
+                mouse.y = event.y;
+            });
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                mouse.radius = (canvas.height / 80) * (canvas.width / 80);
+                initParticles();
+            });
+            window.addEventListener('mouseout', () => {
+                mouse.x = undefined;
+                mouse.y = undefined;
+            });
+            
+            class Particle {
+                constructor(x, y, directionX, directionY, size, color) {
+                    this.x = x; this.y = y; this.directionX = directionX; this.directionY = directionY;
+                    this.size = size; this.color = color;
+                }
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+                    ctx.fillStyle = 'rgba(0, 229, 255, 0.5)';
+                    ctx.fill();
+                }
+                update() {
+                    if (this.x > canvas.width || this.x < 0) this.directionX = -this.directionX;
+                    if (this.y > canvas.height || this.y < 0) this.directionY = -this.directionY;
+                    let dx = mouse.x - this.x;
+                    let dy = mouse.y - this.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < mouse.radius + this.size) {
+                        if (mouse.x < this.x && this.x < canvas.width - this.size * 10) this.x += 5;
+                        if (mouse.x > this.x && this.x > this.size * 10) this.x -= 5;
+                        if (mouse.y < this.y && this.y < canvas.height - this.size * 10) this.y += 5;
+                        if (mouse.y > this.y && this.y > this.size * 10) this.y -= 5;
+                    }
+                    this.x += this.directionX;
+                    this.y += this.directionY;
+                    this.draw();
+                }
+            }
+            
+            function initParticles() {
+                particlesArray = [];
+                let numberOfParticles = (canvas.height * canvas.width) / 9000;
+                for (let i = 0; i < numberOfParticles; i++) {
+                    let size = (Math.random() * 2) + 1;
+                    let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
+                    let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
+                    let directionX = (Math.random() * 0.4) - 0.2;
+                    let directionY = (Math.random() * 0.4) - 0.2;
+                    particlesArray.push(new Particle(x, y, directionX, directionY, size));
+                }
+            }
+            
+            function animateParticles() {
+                requestAnimationFrame(animateParticles);
+                ctx.clearRect(0, 0, innerWidth, innerHeight);
+                for (let i = 0; i < particlesArray.length; i++) {
+                    particlesArray[i].update();
+                }
+            }
+            
+            initParticles();
+            animateParticles();
         }
 
-        // Uygulama ilk açıldığında bir hoşgeldin mesajı ver.
-        setTimeout(() => {
-            speak("AI Arayüzü başlatıldı. Komutlarınızı bekliyorum.");
-        }, 1000);
-    }
+        // --- UYGULAMAYI BAŞLAT ---
+        initialize();
+    });
     </script>
 </body>
 </html>
