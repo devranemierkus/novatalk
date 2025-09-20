@@ -3,10 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Nebula OS v2.0</title>
+    <title>AI Nexus OS - v3.0 Final</title>
     
-    <!-- Puter.js Kütüphanesi -->
+    <!-- GEREKLİ KÜTÜPHANELER -->
+    <!-- Puter.js: İşletim sistemi arayüzü için -->
     <script src="https://js.puter.com/v2/"></script>
+    <!-- Three.js: 3D grafik motoru (MODÜL OLMAYAN, DOĞRUDAN ÇALIŞAN VERSİYON) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Three.js Eklentileri: Parlama efekti ve fare kontrolleri için -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
     
     <!-- Google Fonts ve Font Awesome -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,6 +24,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <style>
+        /* --- BÖLÜM 1: TEMEL STİLLER VE ARAYÜZ TASARIMI --- */
         :root {
             --primary-glow: #00e5ff;
             --secondary-glow: #ff00c1;
@@ -29,9 +39,10 @@
             background-color: var(--background-color);
             color: var(--text-color);
             font-family: 'Roboto', sans-serif;
+            cursor: none; /* Özel imleç için varsayılanı gizle */
         }
         
-        /* 3D sahnenin Puter arayüzünün arkasında kalmasını sağlayan stil */
+        /* 3D sahnenin tüm ekranı kaplaması */
         #three-canvas {
             position: fixed;
             top: 0; left: 0;
@@ -39,139 +50,191 @@
             z-index: 1; 
         }
         
-        /* Puter.js'in ana arayüzü, 3D sahnenin üzerinde olacak */
+        /* Puter.js arayüzünün 3D sahne üzerinde yer alması */
         #puter-root {
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
             z-index: 10;
+            /* Puter'in fare olaylarını yakalamasını engelle, böylece 3D sahne de fareyi algılayabilir */
+            pointer-events: none;
         }
         
-        /* Puter pencerelerine fütüristik bir görünüm kazandıran stil */
+        /* Puter pencerelerinin ve içindeki elementlerin fare olaylarını tekrar aktif et */
+        .puter-window {
+            pointer-events: all;
+        }
+
+        /* Puter pencerelerine fütüristik görünüm */
         .puter-window-content {
-            background-color: rgba(10, 10, 25, 0.6) !important;
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(0, 229, 255, 0.2);
+            background-color: rgba(10, 20, 40, 0.7) !important;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            font-size: 16px;
         }
         .puter-window-titlebar {
             font-family: 'Orbitron', sans-serif !important;
+            background-color: rgba(0, 0, 0, 0.5) !important;
+        }
+
+        /* Özel Fare İmleci Stili */
+        #cursor-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--primary-glow);
+            border-radius: 50%;
+            position: fixed;
+            z-index: 9999;
+            pointer-events: none;
+            box-shadow: 0 0 10px var(--primary-glow), 0 0 20px var(--primary-glow);
+            transition: transform 0.1s ease-out;
         }
     </style>
 </head>
 <body>
-    <!-- 3D Sahne için Canvas Elementi -->
+    <!-- 3D Sahne ve özel fare imleci için HTML elementleri -->
     <canvas id="three-canvas"></canvas>
+    <div id="cursor-dot"></div>
 
     <!-- Puter.js'in Arayüzünü Yükleyeceği Alan -->
     <div id="puter-root"></div>
 
-    <!-- Modern JavaScript (ES6 Modülleri) kullanabilmek için Import Map -->
-    <script type="importmap">
-        { "imports": { "three": "https://unpkg.com/three@0.164.1/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.164.1/examples/jsm/" } }
-    </script>
+    <script>
+    // Bu kod bloğu, `type="module"` olmadan doğrudan çalışır.
 
-    <script type="module">
-        // --- BÖLÜM 1: GEREKLİ KÜTÜPHANELERİN İÇE AKTARILMASI ---
-        import * as THREE from 'three';
-        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    // --- BÖLÜM 2: GLOBAL DEĞİŞKENLER VE DURUM YÖNETİMİ ---
+    // Bu değişkenler, uygulamanın farklı bölümleri arasında veri paylaşımı için kullanılır.
+    let scene, camera, renderer, composer, core, rings = [], particles, clock;
+    let isSpeaking = false;      // Yapay zeka konuşuyor mu?
+    let mouse = new THREE.Vector2(); // Farenin 2D pozisyonunu saklar
 
-        // --- BÖLÜM 2: PUTER.JS'İN BAŞLATILMASI VE HAZIRLANMASI ---
-        // Bu, Puter OS'nin çekirdeğini başlatır ve arayüzü kullanıma hazırlar.
+    // --- BÖLÜM 3: ANA BAŞLATMA FONKSİYONU ---
+    // Sayfa yüklendiğinde çalışacak olan ana fonksiyon.
+    async function main() {
+        // İlk olarak, Puter.js'in işletim sistemi arayüzünü başlat.
         const puter = await Puter.init();
         const desktop = await puter.ui.desktop();
-        
-        // --- BÖLÜM 3: 3D GRAFİK SAHNESİNİN KURULUMU ---
+
+        // Ardından, 3D dünyamızı ve ses sistemimizi kur.
+        initThree();
+        initSpeechRecognition(puter);
+
+        // Her şeyi başlattıktan sonra animasyon döngüsünü çağır.
+        animate();
+    }
+    main(); // Ana fonksiyonu çalıştır.
+
+    // --- BÖLÜM 4: 3D DÜNYANIN KURULUMU (THREE.JS) ---
+    // Bu fonksiyon, 3D sahneyi, kamerayı, ışıkları ve görsel efektleri oluşturur.
+    function initThree() {
+        // Gerekli Three.js bileşenlerini oluştur.
+        scene = new THREE.Scene();
+        clock = new THREE.Clock();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.z = 20;
+
+        // Render motorunu oluştur ve canvas'a bağla.
         const canvas = document.getElementById('three-canvas');
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-        camera.position.z = 10;
-        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        
-        // --- BÖLÜM 4: GELİŞMİŞ GÖRSEL EFEKTLER (POST-PROCESSING) ---
-        // Bu bölüm, sahneye sinematik bir "parlama" (bloom) efekti ekler.
-        const renderScene = new RenderPass(scene, camera);
-        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+
+        // Parlama (Bloom) efekti için post-processing kurulumu.
+        const renderScene = new THREE.RenderPass(scene, camera);
+        const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
         bloomPass.threshold = 0;
-        bloomPass.strength = 2.5; // Parlama gücü
+        bloomPass.strength = 3.0;
         bloomPass.radius = 0.5;
-        const composer = new EffectComposer(renderer);
+        composer = new THREE.EffectComposer(renderer);
         composer.addPass(renderScene);
         composer.addPass(bloomPass);
 
-        // --- BÖLÜM 5: 3D AVATARIN KODLA OLUŞTURULMASI ---
-        // Bu yöntem, dışarıdan dosya yükleme sorununu %100 ortadan kaldırır.
+        // --- 3D AVATARI (AI ÇEKİRDEĞİ) OLUŞTURMA ---
         const coreGroup = new THREE.Group();
-        // Ana Çekirdek
-        const coreGeo = new THREE.IcosahedronGeometry(2, 5); // Daha detaylı bir küre
+        const coreGeo = new THREE.IcosahedronGeometry(3, 8);
         const coreMat = new THREE.MeshStandardMaterial({
             color: 0x00e5ff, emissive: 0x00e5ff, emissiveIntensity: 2,
-            roughness: 0.1, metalness: 0.9
+            roughness: 0.1, metalness: 0.9, wireframe: true
         });
-        const core = new THREE.Mesh(coreGeo, coreMat);
+        core = new THREE.Mesh(coreGeo, coreMat);
         coreGroup.add(core);
 
-        // Etrafında Dönen Enerji Parçacıkları
+        // Çekirdeğin etrafında dönen yörünge halkaları
+        for (let i = 0; i < 4; i++) {
+            const ringGeo = new THREE.TorusGeometry(5 + i * 1.5, 0.05, 16, 100);
+            const ringMat = new THREE.MeshStandardMaterial({
+                color: 0x00e5ff, emissive: 0x00e5ff, emissiveIntensity: 1.5
+            });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = Math.random() * Math.PI;
+            ring.rotation.y = Math.random() * Math.PI;
+            rings.push(ring);
+            coreGroup.add(ring);
+        }
+        scene.add(coreGroup);
+
+        // --- Dinamik Parçacık Sistemi ---
         const particlesGeo = new THREE.BufferGeometry();
-        const particlesCnt = 5000;
+        const particlesCnt = 10000;
         const posArray = new Float32Array(particlesCnt * 3);
         for(let i = 0; i < particlesCnt * 3; i++) {
-            posArray[i] = (Math.random() - 0.5) * 15;
+            posArray[i] = (Math.random() - 0.5) * 50;
         }
         particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-        const particlesMat = new THREE.PointsMaterial({ size: 0.02, color: 0x00e5ff });
-        const particleMesh = new THREE.Points(particlesGeo, particlesMat);
-        coreGroup.add(particleMesh);
-        scene.add(coreGroup);
+        const particlesMat = new THREE.PointsMaterial({ size: 0.03, color: 0x00e5ff });
+        particles = new THREE.Points(particlesGeo, particlesMat);
+        scene.add(particles);
+
+        // Olay dinleyicilerini (event listeners) kur.
+        setupEventListeners();
+    }
+    
+    // --- BÖLÜM 5: ANİMASYON DÖNGÜSÜ ---
+    // Bu fonksiyon, her karede (saniyede ~60 kez) çağrılır ve sahnedeki her şeyi hareket ettirir.
+    function animate() {
+        const elapsedTime = clock.getElapsedTime();
         
-        // --- BÖLÜM 6: ANİMASYON DÖNGÜSÜ VE KULLANICI ETKİLEŞİMİ ---
-        const clock = new THREE.Clock();
-        const mouse = new THREE.Vector2();
-        let isSpeaking = false;
+        // Avatarın kendi etrafında ve yörüngesinde dönmesi
+        core.rotation.x = elapsedTime * 0.1;
+        core.rotation.y = elapsedTime * 0.15;
+        rings[0].rotation.x = elapsedTime * 0.2;
+        rings[1].rotation.y = -elapsedTime * 0.3;
+        rings[2].rotation.z = elapsedTime * 0.25;
+        rings[3].rotation.x = -elapsedTime * 0.15;
+        
+        // Farenin hareketine göre parçacıkların dalgalanması
+        particles.rotation.y = -mouse.x * 0.5;
+        particles.rotation.x = -mouse.y * 0.5;
 
-        window.addEventListener('mousemove', e => {
-            mouse.x = (e.clientX / window.innerWidth) - 0.5;
-            mouse.y = (e.clientY / window.innerHeight) - 0.5;
-        });
-
-        // Ana animasyon fonksiyonu, saniyede 60 kez çalışır.
-        function animate() {
-            const elapsedTime = clock.getElapsedTime();
-            
-            // Nebula ve çekirdeğin yavaşça dönmesi
-            coreGroup.rotation.y = elapsedTime * 0.1;
-            particleMesh.rotation.y = -elapsedTime * 0.15;
-            
-            // Konuşma sırasındaki görsel efektler
-            const targetColor = isSpeaking ? new THREE.Color(0xff00c1) : new THREE.Color(0x00e5ff);
-            const targetIntensity = isSpeaking ? 6 : 2;
-            core.material.color.lerp(targetColor, 0.1);
-            core.material.emissive.lerp(targetColor, 0.1);
-            core.material.emissiveIntensity = THREE.MathUtils.lerp(core.material.emissiveIntensity, targetIntensity, 0.1);
-
-            // Kameranın fareyi takip etmesi
-            camera.position.x += (mouse.x * 5 - camera.position.x) * 0.05;
-            camera.position.y += (-mouse.y * 5 - camera.position.y) * 0.05;
-            camera.lookAt(scene.position);
-            
-            // Sahneyi ve efektleri renderla
-            composer.render();
-            requestAnimationFrame(animate);
-        }
-        animate(); // Animasyonu başlat
-
-        // --- BÖLÜM 7: SES TANIMA VE PUTER.JS ENTEGRASYONU ---
+        // Yapay zeka konuşurken gerçekleşen görsel efektler
+        const targetColor = isSpeaking ? new THREE.Color(0xff00c1) : new THREE.Color(0x00e5ff);
+        const targetIntensity = isSpeaking ? 8 : 2;
+        core.material.color.lerp(targetColor, 0.05);
+        core.material.emissive.lerp(targetColor, 0.05);
+        core.material.emissiveIntensity = THREE.MathUtils.lerp(core.material.emissiveIntensity, targetIntensity, 0.05);
+        
+        // Sahneyi ve efektleri ekrana çiz.
+        composer.render();
+        // Bir sonraki kare için kendini tekrar çağır.
+        requestAnimationFrame(animate);
+    }
+    
+    // --- BÖLÜM 6: SES SİSTEMİ VE PUTER ENTEGRASYONU ---
+    // Bu fonksiyon, ses tanıma ve sesli cevap verme yeteneklerini kurar.
+    async function initSpeechRecognition(puter) {
+        // Tarayıcının ses tanıma API'sini kontrol et.
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) { puter.ui.alert("Tarayıcınız ses tanımayı desteklemiyor."); }
+        if (!SpeechRecognition) {
+            puter.ui.alert("Üzgünüm, tarayıcınız ses tanıma teknolojisini desteklemiyor.");
+            return;
+        }
         const recognition = new SpeechRecognition();
         recognition.lang = 'tr-TR';
-        
-        // Yapay zekanın sesli cevap vermesini sağlayan fonksiyon
+        recognition.continuous = false; // Her komuttan sonra durur.
+
+        // Yapay zekanın sesli cevap vermesini ve bildirim göstermesini sağlayan fonksiyon.
         function speak(text) {
-            puter.ui.notify(text); // Puter'in bildirim sistemiyle mesaj göster
+            puter.ui.notify(text); // Puter'in bildirim sistemiyle mesaj göster.
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'tr-TR';
             utterance.onstart = () => isSpeaking = true;
@@ -179,17 +242,17 @@
             window.speechSynthesis.speak(utterance);
         }
 
-        // --- BÖLÜM 8: KOMUT İŞLEME MERKEZİ ---
-        // Sesle verilen komutları anlayan ve ilgili eylemi gerçekleştiren bölüm
+        // --- BÖLÜM 7: KOMUT İŞLEME MERKEZİ ---
+        // Sesle verilen komutları anlayan ve ilgili Puter.js eylemini gerçekleştiren bölüm.
         async function handleCommand(command) {
             command = command.toLowerCase();
             if (command.includes("merhaba") || command.includes("selam")) {
-                speak("Merhaba, AI Çekirdeği OS hizmetinizde.");
+                speak("Merhaba, AI Nexus OS hizmetinizde.");
             } else if (command.includes("saati aç")) {
                 speak("Saat uygulaması başlatılıyor.");
                 await puter.ui.launch('clock');
             } else if (command.includes("not defteri") || command.includes("not aç")) {
-                speak("Not defteri uygulaması açılıyor.");
+                speak("Not defteri açılıyor.");
                 await puter.ui.launch('notepad');
             } else if (command.includes("hesap makinesi")) {
                 speak("Elbette, hesap makinesini başlatıyorum.");
@@ -198,27 +261,42 @@
                 speak("Tüm pencereler kapatılıyor.");
                 const allWindows = await puter.ui.Window.getAll();
                 allWindows.forEach(win => {
-                    // Kontrol panelini kapatmamak için kontrol
-                    if(win.title === "AI Kontrol Paneli") return;
-                    win.close();
+                    if(win.title !== "AI Kontrol Paneli") win.close();
                 });
             } else if (command.includes("şaka yap")) {
-                speak("Temel bir gün yolda Dursun'u görmüş. Dursun'un iki kulağı da yanıkmış. Temel sormuş: 'Ula Dursun, kulaklarına ne oldu?' Dursun cevap vermiş: 'Sorma Temel, ütü yaparken telefon çaldı.' Temel tekrar sormuş: 'Peki öbür kulağına ne oldu?' Dursun: 'Ambulansı arayacaktım da.'");
+                speak("İki programcı kahve içerken biri diğerine sormuş: Neden bu kadar üzgünsün? Diğeri cevap vermiş: Dün gece sonsuz bir döngüye girdim.");
+            } else if (command.includes("sistem durumunu göster")) {
+                 speak("Sistem Monitörü açılıyor.");
+                 await puter.ui.Window.new({
+                    title: 'Sistem Monitörü',
+                    content: `<div style="padding: 20px; font-family: 'Orbitron', sans-serif;">
+                                <p><strong>ÇEKİRDEK DURUMU:</strong> <span style="color: #00ff00;">AKTİF</span></p>
+                                <p><strong>TARİH:</strong> ${new Date().toLocaleDateString('tr-TR')}</p>
+                                <p><strong>SAAT:</strong> ${new Date().toLocaleTimeString('tr-TR')}</p>
+                             </div>`,
+                    width: 380, height: 200
+                 });
+            } else if (command.includes("müzik çal")) {
+                speak("Müzik için YouTube penceresi açılıyor.");
+                await puter.ui.Window.new({
+                    title: 'Müzik Çalar',
+                    src: 'https://www.youtube.com/embed/jfKfPfyJRdk', // Örnek bir lo-fi müzik videosu
+                    width: 800, height: 600
+                });
             } else {
-                speak("Üzgünüm, bu komutu anlayamadım. Lütfen tekrar deneyin.");
+                speak("Komut anlaşılamadı. Lütfen tekrar deneyin.");
             }
         }
         
-        // --- BÖLÜM 9: KULLANICI ARAYÜZÜ PENCERESİNİN OLUŞTURULMASI ---
-        // Bu, Puter.js'in pencere sistemini kullanarak kontrol panelini oluşturur.
+        // --- BÖLÜM 8: KULLANICI ARAYÜZÜNÜN OLUŞTURULMASI (PUTER PENCERESİ) ---
         const aiWindow = await puter.ui.Window.new({
             title: 'AI Kontrol Paneli',
             width: 320,
-            height: 220,
+            height: 240,
             content: `
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 20px; text-align: center;">
-                    <h3 style="font-family: 'Orbitron', sans-serif; margin-bottom: 10px;">DURUM</h3>
-                    <p id="ai-status" style="margin-bottom: 20px; min-height: 20px; font-style: italic;">Komut bekleniyor...</p>
+                <div id="ai-panel" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 20px; text-align: center;">
+                    <h3 style="font-family: 'Orbitron', sans-serif; margin-bottom: 15px;">DURUM</h3>
+                    <p id="ai-status" style="margin-bottom: 25px; min-height: 20px; font-style: italic;">Komut bekleniyor...</p>
                     <button id="ai-mic-btn" style="width: 70px; height: 70px; border-radius: 50%; border: none; font-size: 2rem; background: var(--primary-glow); color: #010008; cursor: pointer; transition: all 0.3s ease;">
                         <i class="fas fa-microphone-alt"></i>
                     </button>
@@ -237,14 +315,29 @@
             const command = event.results[0][0].transcript;
             handleCommand(command);
         };
-        
-        // Pencere kapanırsa tekrar açılabilmesi için bir ikon oluştur
-        desktop.addIcon({
-            title: "AI Kontrol",
-            icon: "fas fa-brain",
-            onClick: () => aiWindow.focus()
-        });
+    }
 
+    // --- BÖLÜM 9: OLAY DİNLEYİCİLERİ ---
+    // Fare hareketleri, pencere boyutlandırma gibi olayları dinler ve gerekli güncellemeleri yapar.
+    function setupEventListeners() {
+        const cursorDot = document.getElementById('cursor-dot');
+        window.addEventListener('mousemove', e => {
+            // Farenin genel pozisyonunu güncelle (3D sahne için)
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            // Özel imlecin pozisyonunu güncelle
+            cursorDot.style.left = e.clientX + 'px';
+            cursorDot.style.top = e.clientY + 'px';
+        });
+        
+        // Pencere yeniden boyutlandırıldığında 3D sahneyi de güncelle.
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+    }
     </script>
 </body>
 </html>
